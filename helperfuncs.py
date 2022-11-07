@@ -1,4 +1,4 @@
-#these come from https://github.com/oceanprotocol/predict-eth/blob/main/challenges/main2.md, Nov 7, 2022
+#these come from predict-eth/blob/main/challenges/main2.md, Nov 7, 2022
 
 #imports
 import datetime
