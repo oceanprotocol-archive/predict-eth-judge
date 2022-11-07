@@ -4,9 +4,10 @@ import datetime
 import os
 import sys
 import functools
-from pathlib import Path
 
 from enforce_typing import enforce_types
+
+from helperfuncs import *
 
 CHAINID = 137 # Polygon mainnet - where submissions are
 
@@ -113,15 +114,15 @@ Transactions are signed with envvar `JUDGES_KEY`, having address `0xA54ABd42b11B
     print(f"Loaded {n} entries.")
     for i, DT_addr in enumerate(DT_addrs):
         print(f"Entry #{i+1}/{n}: begin")
-	print(f"DT_addr={DT_addr}")
+        print(f"DT_addr={DT_addr}")
 
-	#download dataset
+        #download dataset
         #FIXME
 
-	#save predictions locally, as predvals_DTADDRX.csv
-	#FIXME
+        #save predictions locally, as predvals_DTADDRX.csv
+        #FIXME
         print(f"Entry #{i+1}/{n}: done")
-    
+
     print("pej getpreds: Done")
 
 
@@ -193,18 +194,6 @@ def _entriesCsvFilename(CSV_DIR) -> str:
     return os.path.join(CSV_DIR, "entries.csv")
 
 
-def save_list(list_: list, file_name: str):
-    """Save a file shaped: [1.2, 3.4, 5.6, ..]"""
-    p = Path(file_name)
-    p.write_text(str(list_))
-
-
-def load_list(file_name: str) -> list:
-    """Load from a file shaped: [1.2, 3.4, 5.6, ..]"""
-    p = Path(file_name)
-    s = p.read_text()
-    list_ = eval(s)
-    return list_
 
 # ========================================================================
 # main
