@@ -1,2 +1,3 @@
 # predict-eth-judge
-A tool to evaluate nmse for each submissions
+
+For predict-eth judges, a script to compute each submission's nmse
