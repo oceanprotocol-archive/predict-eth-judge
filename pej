@@ -68,9 +68,8 @@ Usage: pej getentries ST FIN CSV_DIR
 	"0x277475e34ce4f787d8c3b1dca98c6407470407a3",
 	]
     
-    #    
-    p = Path(entries_file_name)
-    p.write_text(str(DT_addrs))
+    #
+    save_list(entries_file_name)
 
     print(f"pej getentries: Done. There were {len(DT_addrs)} entries")
 
@@ -109,8 +108,19 @@ Transactions are signed with envvar `JUDGES_KEY`, having address `0xA54ABd42b11B
         sys.exit(0)
 
     #main work
-    print("FIXME: do main work")
-    #FIXME: output fake predvals_DTADDRX.csv
+    DT_addrs = load_list(entries_file_name)
+    n = len(DT_addrs)
+    print(f"Loaded {n} entries.")
+    for i, DT_addr in enumerate(DT_addrs):
+        print(f"Entry #{i+1}/{n}: begin")
+	print(f"DT_addr={DT_addr}")
+
+	#download dataset
+        #FIXME
+
+	#save predictions locally, as predvals_DTADDRX.csv
+	#FIXME
+        print(f"Entry #{i+1}/{n}: done")
     
     print("pej getpreds: Done")
 
@@ -166,16 +176,35 @@ def _createDirIfNeeded(dir_: str):
 
 
 @enforce_types
-def _getPrivateAccount():
+def _getPrivateWallet(ocean):
     private_key = os.getenv("JUDGES_KEY")
     assert private_key is not None, "Need to set envvar JUDGES_KEY"
-    account = brownie.network.accounts.add(private_key=private_key)
-    print(f"For private key JUDGES_KEY, address is: {account.address}")
-    return account
+    config = ocean.config
+    wallet = Wallet(
+        ocean.web3, private_key, config["BLOCK_CONFIRMATIONS"],
+        config["TRANSACTION_TIMEOUT"]
+    )
+
+    print(f"For private key JUDGES_KEY, address is: {wallet.address}")
+    return wallet
 
 
 def _entriesCsvFilename(CSV_DIR) -> str:
     return os.path.join(CSV_DIR, "entries.csv")
+
+
+def save_list(list_: list, file_name: str):
+    """Save a file shaped: [1.2, 3.4, 5.6, ..]"""
+    p = Path(file_name)
+    p.write_text(str(list_))
+
+
+def load_list(file_name: str) -> list:
+    """Load from a file shaped: [1.2, 3.4, 5.6, ..]"""
+    p = Path(file_name)
+    s = p.read_text()
+    list_ = eval(s)
+    return list_
 
 # ========================================================================
 # main

@@ -1,23 +1,11 @@
 # predict-eth-judge
 
-For predict-eth judges, a script to compute each submission's nmse
-
-```text
-Usage: pej getentries|getpreds|getnmses|..
-```
+For judges of the predict-eth competition, a script to compute each submission's nmse.
 
 
 # Installation
 
-### Prerequisites
-
-Ensure prerequisites:
-- Linux/MacOS
-- Python 3.8.5+
-
-### Install pej
-
-Then, open a new terminal and:
+Open a new terminal and:
 
 ```console
 #clone repo
@@ -36,12 +24,14 @@ pip install -r requirements.txt
 
 #add pwd to bash path
 export PATH=$PATH:.
-```
 
+#set judges private key (needed for "getpreds")
+export JUDGES_KEY=<judges key> 
+```
 
 # Main Usage: CLI
 
-`pej` is the main tool. In main terminal:
+`pej` is the main tool. In the terminal:
 ```console
 #top-level help, lists all tools
 pej
@@ -49,7 +39,9 @@ pej
 #see help for key functions
 pej getentries
 pej getpreds
+pej getnmses
 ...
 ```
 
-Then, simply follow the usage directions:)
+The order is getentries -> getpreds -> getnmses.
+
