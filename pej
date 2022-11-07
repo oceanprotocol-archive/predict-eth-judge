@@ -72,7 +72,7 @@ Usage: pej getentries ST FIN CSV_DIR
     p = Path(entries_file_name)
     p.write_text(str(DT_addrs))
 
-    print("pej getentries: Done. There were {len(DT_addrs)} entries")
+    print(f"pej getentries: Done. There were {len(DT_addrs)} entries")
 
 
 # ========================================================================
