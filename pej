@@ -6,7 +6,6 @@ import sys
 import functools
 from pathlib import Path
 
-import brownie
 from enforce_typing import enforce_types
 
 CHAINID = 137 # Polygon mainnet - where submissions are
@@ -54,12 +53,9 @@ Usage: pej getentries ST FIN CSV_DIR
     entries_file_name = _entriesCsvFilename(CSV_DIR)
     _exitIfFileExists(entries_file_name)
 
-    # brownie setup
-    networkutil.connect(CHAINID)
-    chain = brownie.network.chain
-    rng = blockrange.create_range(chain, ST, FIN, NSAMP, SECRET_SEED)
-
     # main work
+    
+    # rng = blockrange.create_range(chain, ST, FIN, NSAMP, SECRET_SEED)
     print("NOTE: this is currently hardcoded, it doesn't actually query")
 
     # transactions that shared token to judges:
@@ -112,10 +108,6 @@ Transactions are signed with envvar `JUDGES_KEY`, having address `0xA54ABd42b11B
         print(f"\n File {entries_file_name} doesn't exist. Exiting.")
         sys.exit(0)
 
-    # brownie setup
-    networkutil.connect(CHAINID)
-    chain = brownie.network.chain
-
     #main work
     print("FIXME: do main work")
     #FIXME: output fake predvals_DTADDRX.csv
@@ -148,10 +140,6 @@ Usage: pej getnmses CSV_DIR
     if not os.path.exists(CSV_DIR):
         print(f"\nDirectory {CSV_DIR} doesn't exist; nor do pred'ns. Exiting.")
         sys.exit(0)
-
-    # brownie setup
-    networkutil.connect(CHAINID)
-    chain = brownie.network.chain
     
     # main work
     print("FIXME: do main work")
@@ -179,10 +167,10 @@ def _createDirIfNeeded(dir_: str):
 
 @enforce_types
 def _getPrivateAccount():
-    private_key = os.getenv("PEJ_KEY")
-    assert private_key is not None, "Need to set envvar PEJ_KEY"
+    private_key = os.getenv("JUDGES_KEY")
+    assert private_key is not None, "Need to set envvar JUDGES_KEY"
     account = brownie.network.accounts.add(private_key=private_key)
-    print(f"For private key PEJ_KEY, address is: {account.address}")
+    print(f"For private key JUDGES_KEY, address is: {account.address}")
     return account
 
 
