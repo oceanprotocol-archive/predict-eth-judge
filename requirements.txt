@@ -1,0 +1,8 @@
+eth-brownie
+enforce_typing
+mypy
+numpy
+ocean-lib
+pandas
+scipy
+types-requests
