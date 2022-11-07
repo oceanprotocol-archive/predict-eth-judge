@@ -4,6 +4,7 @@ import datetime
 import os
 import sys
 import functools
+from pathlib import Path
 
 import brownie
 from enforce_typing import enforce_types
@@ -50,7 +51,8 @@ Usage: pej getentries ST FIN CSV_DIR
 
     # create dir if not exists
     _createDirIfNeeded(CSV_DIR)
-    _exitIfFileExists(_entriesCsvFilename(CSV_DIR))
+    entries_file_name = _entriesCsvFilename(CSV_DIR)
+    _exitIfFileExists(entries_file_name)
 
     # brownie setup
     networkutil.connect(CHAINID)
@@ -58,10 +60,23 @@ Usage: pej getentries ST FIN CSV_DIR
     rng = blockrange.create_range(chain, ST, FIN, NSAMP, SECRET_SEED)
 
     # main work
-    print("FIXME: do main work")
-    #FIXME: output fake entries.csv
+    print("NOTE: this is currently hardcoded, it doesn't actually query")
 
-    print("pej getentries: Done")
+    # transactions that shared token to judges:
+    # https://polygonscan.com/address/0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E#tokentxns
+
+    # hardcoded entries for Web3 ATL hackathon, due Nov 6 2022
+    # (manually entered via copy & paste from polygonscan)
+    DT_addrs = [
+        "0xdf2857f2f9f1f2a227ca0f00c20190ff7d7a05a0",
+	"0x277475e34ce4f787d8c3b1dca98c6407470407a3",
+	]
+    
+    #    
+    p = Path(entries_file_name)
+    p.write_text(str(DT_addrs))
+
+    print("pej getentries: Done. There were {len(DT_addrs)} entries")
 
 
 # ========================================================================
@@ -89,7 +104,12 @@ Transactions are signed with envvar `JUDGES_KEY`, having address `0xA54ABd42b11B
 
     # check dir
     if not os.path.exists(CSV_DIR):
-        print(f"\nDirectory {CSV_DIR} doesn't exist; nor do entries. Exiting.")
+        print(f"\nDirectory {CSV_DIR} doesn't exist. Exiting.")
+        sys.exit(0)
+	
+    entries_file_name = _entriesCsvFilename(CSV_DIR)
+    if not os.path.exists(entries_file_name):
+        print(f"\n File {entries_file_name} doesn't exist. Exiting.")
         sys.exit(0)
 
     # brownie setup
