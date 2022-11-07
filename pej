@@ -7,7 +7,9 @@ import functools
 
 from enforce_typing import enforce_types
 
-from helperfuncs import *
+from helperfuncs import * #tools from predict-eth repo
+from ocean_lib.models.datatoken import Datatoken
+from oceanutil import * #tools from df-py repo
 
 CHAINID = 137 # Polygon mainnet - where submissions are
 
@@ -120,7 +122,7 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address `
     
     for i, DT_addr in enumerate(DT_addrs):
         print(f"DT #{i+1}/{n}: begin. DT_addr={DT_addr}")
-        did = calcDID(DT_addr)
+        did = calcDID(DT_addr, CHAINID)
         old_pred_name = ocean.assets.download_file(did, alice_wallet)
         new_pred_name = os.path.join(CSV_DIR, f"predvals_DT_{DT_addr}.csv")
         shutil.copyfile(old_pred_name, new_pred_name)
@@ -196,13 +198,20 @@ Usage: pej getdid DT_ADDR
     # extract inputs
     assert sys.argv[1] == "getdid"
     DT_ADDR = sys.argv[2]
-    
-    print("pej getnmses: Begin")
-    print(f"Args: DT_ADDR={DT_ADDR}")
-    
+        
     # main work
-    print("FIXME: do main work")
+    ocean = create_ocean_instance()
+    DT_ADDR = ocean.web3.toChecksumAddress(DT_ADDR)
+    print(f"\n=Given=\ndt_addr: {DT_ADDR}")
 
+    dt = Datatoken(ocean.web3, DT_ADDR)
+    nft_addr = dt.get_erc721_address()
+    nft_addr = ocean.web3.toChecksumAddress(nft_addr)
+    print(f"\n=Found=\nnft_addr: {nft_addr}")
+    
+    did = calcDID(nft_addr, CHAINID)
+    print(f"did: {did}")
+    print()
 
 # ========================================================================
 # utilities
