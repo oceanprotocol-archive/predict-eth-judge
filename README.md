@@ -30,9 +30,9 @@ python -m venv venv
 #activate env
 source venv/bin/activate
 
-#install dependencies
+#install dependencies. "--pre" is to allow pre-releases
 pip install wheel
-pip install -r requirements.txt
+pip install --pre -r requirements.txt
 
 #add pwd to bash path
 export PATH=$PATH:.
