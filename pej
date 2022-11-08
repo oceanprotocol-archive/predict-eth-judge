@@ -68,7 +68,7 @@ Usage: pej getentries ST FIN CSV_DIR
 
     # hardcoded entries for Web3 ATL hackathon, due Nov 6 2022
     # (manually entered via copy & paste from polygonscan)
-    DT_addrs = [
+    dt_addrs = [
         "0xdf2857f2f9f1f2a227ca0f00c20190ff7d7a05a0",
 	"0x277475e34ce4f787d8c3b1dca98c6407470407a3",
 	]
@@ -76,7 +76,7 @@ Usage: pej getentries ST FIN CSV_DIR
     #
     save_list(entries_file_name)
 
-    print(f"pej getentries: Done. There were {len(DT_addrs)} entries")
+    print(f"pej getentries: Done. There were {len(dt_addrs)} entries")
 
 
 # ========================================================================
@@ -116,23 +116,23 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address `
     ocean = create_ocean_instance()
     alice_wallet = create_alice_wallet(ocean) #you're Alice
     
-    DT_addrs = load_list(entries_file_name)
-    n = len(DT_addrs)
+    dt_addrs = load_list(entries_file_name)
+    n = len(dt_addrs)
     print(f"Loaded {n} DT addrs.")
     
-    for i, DT_addr in enumerate(DT_addrs):
-        print(f"DT #{i+1}/{n}: begin. DT_addr={DT_addr}")
+    for i, dt_addr in enumerate(dt_addrs):
+        print(f"DT #{i+1}/{n}: begin. dt_addr={dt_addr}")
 
         #calc did
-        DT_ADDR = ocean.web3.toChecksumAddress(DT_ADDR)
-        dt = Datatoken(ocean.web3, DT_ADDR)
+        dt_addr = ocean.web3.toChecksumAddress(dt_addr)
+        dt = Datatoken(ocean.web3, dt_addr)
         nft_addr = dt.get_erc721_address()
         nft_addr = ocean.web3.toChecksumAddress(nft_addr)
         did = calcDID(nft_addr, CHAINID)
 
         import pdb; pdb.set_trace()
         old_pred_name = ocean.assets.download_file(did, alice_wallet)
-        new_pred_name = os.path.join(CSV_DIR, f"predvals_DT_{DT_addr}.csv")
+        new_pred_name = os.path.join(CSV_DIR, f"predvals_DT_{dt_addr}.csv")
         shutil.copyfile(old_pred_name, new_pred_name)
         
         print(f"Entry #{i+1}/{n}: done")
