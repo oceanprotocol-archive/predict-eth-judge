@@ -70,7 +70,7 @@ Usage: pej getentries ST FIN CSV_DIR
     # (manually entered via copy & paste from polygonscan)
     dt_addrs = [
         #"0xdf2857f2f9f1f2a227ca0f00c20190ff7d7a05a0", #ocean_lib.agreements.consumable.AssetNotConsumable: 1 (=ConsumableCodes.ASSET_DISABLED)
-	"0x277475e34ce4f787d8c3b1dca98c6407470407a3",
+	#"0x277475e34ce4f787d8c3b1dca98c6407470407a3", #ocean_lib.agreements.consumable.AssetNotConsumable: 1 (=ConsumableCodes.ASSET_DISABLED)
 	]
     
     #
