@@ -122,7 +122,15 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address `
     
     for i, DT_addr in enumerate(DT_addrs):
         print(f"DT #{i+1}/{n}: begin. DT_addr={DT_addr}")
-        did = calcDID(DT_addr, CHAINID)
+
+        #calc did
+        DT_ADDR = ocean.web3.toChecksumAddress(DT_ADDR)
+        dt = Datatoken(ocean.web3, DT_ADDR)
+        nft_addr = dt.get_erc721_address()
+        nft_addr = ocean.web3.toChecksumAddress(nft_addr)
+        did = calcDID(nft_addr, CHAINID)
+
+        import pdb; pdb.set_trace()
         old_pred_name = ocean.assets.download_file(did, alice_wallet)
         new_pred_name = os.path.join(CSV_DIR, f"predvals_DT_{DT_addr}.csv")
         shutil.copyfile(old_pred_name, new_pred_name)
@@ -233,6 +241,7 @@ def _entriesCsvFilename(CSV_DIR) -> str:
     return os.path.join(CSV_DIR, "entries.csv")
 
 
+    
 
 # ========================================================================
 # main
