@@ -121,10 +121,10 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address `
     print(f"Loaded {n} DT addrs.")
     
     for i, dt_addr in enumerate(dt_addrs):
-        print(f"DT #{i+1}/{n}: begin. dt_addr={dt_addr}")
-
-        #calc did
+        print(f"DT #{i+1}/{n}: Begin")
         did = _dtAddrToDid(dt_addr, ocean)
+        asset = ocean.assets.resolve(did)
+        assert asset.did == did
 
         import pdb; pdb.set_trace()
         
