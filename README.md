@@ -2,6 +2,18 @@
 
 For judges of the predict-eth competition, a script to compute each submission's nmse.
 
+# CLI
+
+```text
+Usage: pej getentries|getpreds|getnmses
+
+  pej getentries ST FIN CSV_DIR - query chain, output 1 entries.csv
+  pej getpreds CSV_DIR - from 1 entries.csv, output N predvals_DTADDRX.csv
+  pej getnmses CSV_DIR - from N predvals_DTADDRX.csv, output 1 nmses.csv
+
+  pej getdid DT_ADDR - from datatoken address, output did
+```
+
 
 # Installation
 
@@ -28,20 +40,3 @@ export PATH=$PATH:.
 #set judges private key (needed for "getpreds")
 export JUDGES_KEY=<judges key> 
 ```
-
-# Main Usage: CLI
-
-`pej` is the main tool. In the terminal:
-```console
-#top-level help, lists all tools
-pej
-
-#see help for key functions
-pej getentries
-pej getpreds
-pej getnmses
-...
-```
-
-The order is getentries -> getpreds -> getnmses.
-
