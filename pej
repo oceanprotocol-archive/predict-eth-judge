@@ -6,10 +6,10 @@ import sys
 import functools
 
 from enforce_typing import enforce_types
+import hashlib
 
 from helperfuncs import * #tools from predict-eth repo
 from ocean_lib.models.datatoken import Datatoken
-from oceanutil import * #tools from df-py repo
 
 CHAINID = 137 # Polygon mainnet - where submissions are
 
@@ -124,14 +124,28 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address `
         print(f"DT #{i+1}/{n}: begin. dt_addr={dt_addr}")
 
         #calc did
-        dt_addr = ocean.web3.toChecksumAddress(dt_addr)
-        dt = Datatoken(ocean.web3, dt_addr)
-        nft_addr = dt.get_erc721_address()
-        nft_addr = ocean.web3.toChecksumAddress(nft_addr)
-        did = calcDID(nft_addr, CHAINID)
+        did = _dtAddrToDid(dt_addr, ocean)
 
         import pdb; pdb.set_trace()
-        old_pred_name = ocean.assets.download_file(did, alice_wallet)
+        #old_pred_name = ocean.assets.download_file(did, alice_wallet)
+
+        # Alice sends a datatoken to the service, to get access
+        order_tx_id = ocean.assets.pay_for_access_service(asset, alice_wallet)
+        print(f"order_tx_id = '{order_tx_id}'")
+
+        # Alice downloads the file
+        # If the connection breaks, Alice can request again by showing order_tx_id.
+        file_path = ocean.assets.download_asset(
+            asset=asset,
+            consumer_wallet=alice_wallet,
+            destination='./',
+            order_tx_id=order_tx_id
+        )
+
+
+
+
+        
         new_pred_name = os.path.join(CSV_DIR, f"predvals_DT_{dt_addr}.csv")
         shutil.copyfile(old_pred_name, new_pred_name)
         
@@ -205,25 +219,49 @@ Usage: pej getdid DT_ADDR
 
     # extract inputs
     assert sys.argv[1] == "getdid"
-    DT_ADDR = sys.argv[2]
+    dt_addr = sys.argv[2]
         
     # main work
     ocean = create_ocean_instance()
-    DT_ADDR = ocean.web3.toChecksumAddress(DT_ADDR)
-    print(f"\n=Given=\ndt_addr: {DT_ADDR}")
-
-    dt = Datatoken(ocean.web3, DT_ADDR)
-    nft_addr = dt.get_erc721_address()
-    nft_addr = ocean.web3.toChecksumAddress(nft_addr)
-    print(f"\n=Found=\nnft_addr: {nft_addr}")
-    
-    did = calcDID(nft_addr, CHAINID)
-    print(f"did: {did}")
-    print()
+    _dtAddrToDid(dt_addr, ocean)
 
 # ========================================================================
-# utilities
+# dt_addr -> nft_addr -> did utilities
+# adapted from df-py/util/oceanutil.py as of Nov 7, 2022
 
+@enforce_types
+def _dtAddrToDid(dt_addr: str, ocean) -> str:
+    nft_addr = _dtAddrToNftAddr(dt_addr, ocean)
+    did = _nftAddrToDid(nft_addr, CHAINID, ocean)
+    print(f"dt_addr={dt_addr}, nft_addr={nft_addr}, did={did}")
+    return did
+
+@enforce_types
+def _dtAddrToNftAddr(dt_addr: str, ocean) -> str:
+    dt_addr = ocean.web3.toChecksumAddress(dt_addr)
+    dt = Datatoken(ocean.web3, dt_addr)
+    nft_addr = dt.get_erc721_address()
+    return nft_addr
+
+@enforce_types
+def _nftAddrToDid(nft_addr: str, chainID: int, ocean) -> str:
+    # adapted from ocean.py/ocean_lib/ocean/ocean_assets.py
+    nft_addr = ocean.web3.toChecksumAddress(nft_addr)
+    did = f"did:op:{create_checksum(nft_addr + str(chainID))}"
+    return did
+
+# from ocean.py/ocean_lib/utils/utilities.py
+@enforce_types
+def create_checksum(text: str) -> str:
+    """
+    :return: str
+    """
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+
+# ========================================================================
+# file utilities
 
 def _exitIfFileExists(filename: str):
     if os.path.exists(filename):
@@ -240,8 +278,6 @@ def _createDirIfNeeded(dir_: str):
 def _entriesCsvFilename(CSV_DIR) -> str:
     return os.path.join(CSV_DIR, "entries.csv")
 
-
-    
 
 # ========================================================================
 # main
