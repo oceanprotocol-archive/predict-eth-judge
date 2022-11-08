@@ -69,12 +69,12 @@ Usage: pej getentries ST FIN CSV_DIR
     # hardcoded entries for Web3 ATL hackathon, due Nov 6 2022
     # (manually entered via copy & paste from polygonscan)
     dt_addrs = [
-        "0xdf2857f2f9f1f2a227ca0f00c20190ff7d7a05a0",
+        #"0xdf2857f2f9f1f2a227ca0f00c20190ff7d7a05a0", #ocean_lib.agreements.consumable.AssetNotConsumable: 1 (=ConsumableCodes.ASSET_DISABLED)
 	"0x277475e34ce4f787d8c3b1dca98c6407470407a3",
 	]
     
     #
-    save_list(entries_file_name)
+    save_list(dt_addrs, entries_file_name)
 
     print(f"pej getentries: Done. There were {len(dt_addrs)} entries")
 
