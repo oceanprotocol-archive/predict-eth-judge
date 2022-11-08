@@ -127,29 +127,34 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address `
         did = _dtAddrToDid(dt_addr, ocean)
 
         import pdb; pdb.set_trace()
-        #old_pred_name = ocean.assets.download_file(did, alice_wallet)
-
+        
         # Alice sends a datatoken to the service, to get access
         order_tx_id = ocean.assets.pay_for_access_service(asset, alice_wallet)
         print(f"order_tx_id = '{order_tx_id}'")
+        import pdb; pdb.set_trace()
 
         # Alice downloads the file
         # If the connection breaks, Alice can request again by showing order_tx_id.
-        file_path = ocean.assets.download_asset(
+        old_pred_path = ocean.assets.download_asset(
             asset=asset,
             consumer_wallet=alice_wallet,
             destination='./',
             order_tx_id=order_tx_id
         )
-
-
-
-
+        print(f"old_pred_path={old_pred_path}")
+        import pdb; pdb.set_trace()
+        
+        old_pred_name = glob.glob(os.path.join(old_pred_path, "*"))[0]
+        print(f"old_pred_name={old_pred_name}")
+        import pdb; pdb.set_trace()
         
         new_pred_name = os.path.join(CSV_DIR, f"predvals_DT_{dt_addr}.csv")
         shutil.copyfile(old_pred_name, new_pred_name)
+        print(f"new_pred_name={new_pred_name}")
+        import pdb; pdb.set_trace()
         
         print(f"Entry #{i+1}/{n}: done")
+        import pdb; pdb.set_trace()
 
     print("pej getpreds: Done")
 
@@ -202,8 +207,6 @@ Usage: pej getnmses CSV_DIR
     
 
     print("pej getnmses: Done")
-
-
 
 
 @enforce_types
