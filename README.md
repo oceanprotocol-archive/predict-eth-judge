@@ -38,5 +38,5 @@ pip install -r requirements.txt
 export PATH=$PATH:.
 
 #set judges private key (needed for "getpreds")
-export   export REMOTE_TEST_PRIVATE_KEY1=<judges key> 
+export REMOTE_TEST_PRIVATE_KEY1=<judges key> 
 ```
