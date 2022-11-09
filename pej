@@ -5,6 +5,7 @@ import os
 import sys
 import functools
 
+import brownie
 from enforce_typing import enforce_types
 import hashlib
 
@@ -69,8 +70,8 @@ Usage: pej getentries ST FIN CSV_DIR
     # hardcoded entries for Web3 ATL hackathon, due Nov 6 2022
     # (manually entered via copy & paste from polygonscan)
     dt_addrs = [
-        #"0xdf2857f2f9f1f2a227ca0f00c20190ff7d7a05a0", #ocean_lib.agreements.consumable.AssetNotConsumable: 1 (=ConsumableCodes.ASSET_DISABLED)
-	#"0x277475e34ce4f787d8c3b1dca98c6407470407a3", #ocean_lib.agreements.consumable.AssetNotConsumable: 1 (=ConsumableCodes.ASSET_DISABLED)
+        "0xdf2857f2f9f1f2a227ca0f00c20190ff7d7a05a0", #ocean_lib.agreements.consumable.AssetNotConsumable: 1 (=ConsumableCodes.ASSET_DISABLED)
+	"0x277475e34ce4f787d8c3b1dca98c6407470407a3", #ocean_lib.agreements.consumable.AssetNotConsumable: 1 (=ConsumableCodes.ASSET_DISABLED)
 	]
     
     #
@@ -89,7 +90,7 @@ def do_getpreds():
 Usage: pej getpreds CSV_DIR
     CSV_DIR -- input & output dir
 
-Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address `0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E`
+Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {JUDGES_ADDRESS}
 """
     if len(sys.argv) not in [2 + 1]:
         print(HELP)
@@ -241,15 +242,15 @@ def _dtAddrToDid(dt_addr: str, ocean) -> str:
 
 @enforce_types
 def _dtAddrToNftAddr(dt_addr: str, ocean) -> str:
-    dt_addr = ocean.web3.toChecksumAddress(dt_addr)
-    dt = Datatoken(ocean.web3, dt_addr)
+    dt_addr = brownie.web3.toChecksumAddress(dt_addr)
+    dt = Datatoken(brownie.web3, dt_addr)
     nft_addr = dt.get_erc721_address()
     return nft_addr
 
 @enforce_types
 def _nftAddrToDid(nft_addr: str, chainID: int, ocean) -> str:
     # adapted from ocean.py/ocean_lib/ocean/ocean_assets.py
-    nft_addr = ocean.web3.toChecksumAddress(nft_addr)
+    nft_addr = brownie.web3.toChecksumAddress(nft_addr)
     did = f"did:op:{create_checksum(nft_addr + str(chainID))}"
     return did
 

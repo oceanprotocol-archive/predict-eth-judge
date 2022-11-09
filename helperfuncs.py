@@ -7,31 +7,33 @@ from pathlib import Path
 import os
 import time
 
+from brownie.network import accounts
 import matplotlib
 import matplotlib.pyplot as plt
-    
+
 from ocean_lib.example_config import ExampleConfig
 from ocean_lib.ocean.ocean import Ocean
-from ocean_lib.web3_internal.wallet import Wallet
+from ocean_lib.web3_internal.utils import connect_to_network
 
+JUDGES_ADDRESS = "0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E"
 
 #helper functions: setup
 def create_ocean_instance() -> Ocean:
-    config = ExampleConfig.get_config("https://polygon-rpc.com") # points to Polygon mainnet
-    config["BLOCK_CONFIRMATIONS"] = 1 #faster
+    connect_to_network("polygon")
+    config = ExampleConfig.get_config("polygon")
     ocean = Ocean(config)
     return ocean
 
-
-def create_alice_wallet(ocean: Ocean) -> Wallet:
-    config = ocean.config_dict
+def create_alice_wallet(ocean: Ocean):
     alice_private_key = os.getenv('REMOTE_TEST_PRIVATE_KEY1')
-    alice_wallet = Wallet(ocean.web3, alice_private_key, config["BLOCK_CONFIRMATIONS"], config["TRANSACTION_TIMEOUT"])
-    bal = ocean.from_wei(alice_wallet.web3.eth.get_balance(alice_wallet.address))
-    print(f"alice_wallet.address={alice_wallet.address}. bal={bal}")
-    assert bal > 0, f"Alice needs MATIC"
+    alice_wallet = accounts.add(alice_private_key)
+    bal = accounts.at(alice_wallet.address).balance()
+    print(f"alice_wallet.address={alice_wallet.address}. bal={bal/1e18} MATIC")
+    assert alice_wallet.address == JUDGES_ADDRESS, \
+        f"Wrong address. Need: {JUDGES_ADDRESS}"
+    assert bal > 0, "Alice needs MATIC"
     return alice_wallet
-
+    
 
 #helper functions: time
 def to_unixtime(dt: datetime.datetime):
