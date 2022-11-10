@@ -6,7 +6,9 @@ import sys
 import functools
 
 import brownie
+import ccxt
 from enforce_typing import enforce_types
+import glob
 import hashlib
 
 from helperfuncs import * #tools from predict-eth repo
@@ -70,11 +72,10 @@ Usage: pej getentries ST FIN CSV_DIR
     # hardcoded entries for Web3 ATL hackathon, due Nov 6 2022
     # (manually entered via copy & paste from polygonscan)
     dt_addrs = [
-        "0xdf2857f2f9f1f2a227ca0f00c20190ff7d7a05a0", #ocean_lib.agreements.consumable.AssetNotConsumable: 1 (=ConsumableCodes.ASSET_DISABLED)
-	"0x277475e34ce4f787d8c3b1dca98c6407470407a3", #ocean_lib.agreements.consumable.AssetNotConsumable: 1 (=ConsumableCodes.ASSET_DISABLED)
+        "0xdf2857f2f9f1f2a227ca0f00c20190ff7d7a05a0", #https://market.oceanprotocol.com/asset/did:op:f04ae0cb2bc7d48c0402b79975dcb21703f73b1188379ac890b22d12c012a8a8
+	"0x277475e34ce4f787d8c3b1dca98c6407470407a3", #https://market.oceanprotocol.com/asset/did:op:8507336b06a15d6d189113db6006f67176736e91bea00a7b7a6df2ce5a7f0de5
 	]
     
-    #
     save_list(dt_addrs, entries_file_name)
 
     print(f"pej getentries: Done. There were {len(dt_addrs)} entries")
@@ -130,7 +131,6 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {
         # Alice sends a datatoken to the service, to get access
         order_tx_id = ocean.assets.pay_for_access_service(asset, alice_wallet)
         print(f"order_tx_id = '{order_tx_id}'")
-        import pdb; pdb.set_trace()
 
         # Alice downloads the file
         # If the connection breaks, Alice can request again by showing order_tx_id.
@@ -139,21 +139,15 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {
             consumer_wallet=alice_wallet,
             destination='./',
             order_tx_id=order_tx_id
-        )
-        print(f"old_pred_path={old_pred_path}")
-        import pdb; pdb.set_trace()
-        
+        )        
         old_pred_name = glob.glob(os.path.join(old_pred_path, "*"))[0]
         print(f"old_pred_name={old_pred_name}")
-        import pdb; pdb.set_trace()
         
         new_pred_name = os.path.join(CSV_DIR, f"predvals_DT_{dt_addr}.csv")
         shutil.copyfile(old_pred_name, new_pred_name)
         print(f"new_pred_name={new_pred_name}")
-        import pdb; pdb.set_trace()
         
         print(f"Entry #{i+1}/{n}: done")
-        import pdb; pdb.set_trace()
 
     print("pej getpreds: Done")
 
@@ -185,25 +179,35 @@ Usage: pej getnmses CSV_DIR
         sys.exit(0)
     
     # main work
-    print("FIXME: do main work")
+    start_dt = datetime.datetime(2022, 11, 7, 3, 59) #Nov 6, 2022 at 11:59pm Eastern (=03:59 UTC)
+    print(f"start_dt is hardcoded to: {start_dt}") # FIXME make not hardcoded
+    target_uts = target_12h_unixtimes(start_dt)
+    print_datetime_info("target times", target_uts)
 
-    # #get actual ETH values (final)
-    # ETH_USDT_did = "did:op:0dac5eb4965fb2b485181671adbf3a23b0133abf71d2775eda8043e8efc92d19"
-    # file_name = ocean.assets.download_file(ETH_USDT_did, alice_wallet)
-    # allcex_uts, allcex_vals = load_from_ohlc_data(file_name)
-    # print_datetime_info("CEX data info", allcex_uts)
+    pred_names = glob.glob(os.path.join(CSV_DIR, "predvals_DT*.csv"))
+    n = len(pred_names)
+    for i, pred_name in enumerate(pred_names):
+        print("="*60)
+        print(f"DT #{i+1}/{n}: Begin")
+        
+        #get predicted ETH values
+        print(f"pred_name: {pred_name}")
+        pred_vals = load_list(pred_name)
 
-    # start_dt = datetime.datetime(2022, 12, 12, 1, 00) #Dec 12, 2022 at 1:00am UTC
-    # target_uts = target_12h_unixtimes(start_dt)
-    # print_datetime_info("target times", target_uts)
+        #get actual ETH values
+        cex_x = ccxt.binance().fetch_ohlcv('ETH/USDT', '1h')
+        allcex_uts = [xi[0]/1000 for xi in cex_x]
+        allcex_vals = [xi[4] for xi in cex_x]
+        print_datetime_info("CEX data info", allcex_uts)
+        cex_vals = filter_to_target_uts(target_uts, allcex_uts, allcex_vals)
 
-    # cex_vals = filter_to_target_uts(target_uts, allcex_uts, allcex_vals)
+        #calc nmse, plot
+        nmse = calc_nmse(cex_vals, pred_vals)
+        print(f"NMSE = {nmse}")
+        plot_prices(cex_vals, pred_vals)
+        
+        print(f"DT #{i+1}/{n}: Done")
 
-    # #calc nmse, plot
-    # nmse = calc_nmse(cex_vals, pred_vals)
-    # print(f"NMSE = {nmse}")
-    # plot_prices(cex_vals, pred_vals)
-    
 
     print("pej getnmses: Done")
 
