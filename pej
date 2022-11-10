@@ -22,8 +22,8 @@ HELP_MAIN = f"""predict-eth-judge
 Usage: pej getentries|getpreds|getnmses
 
   pej getentries ST FIN CSV_DIR - query chain, output 1 entries.csv
-  pej getpreds CSV_DIR - from 1 entries.csv, output N predvals_DTADDRX.csv
-  pej getnmses CSV_DIR - from N predvals_DTADDRX.csv, output 1 nmses.csv
+  pej getpreds CSV_DIR - from 1 entries.csv, output N predvals_DT_ADDRX.csv
+  pej getnmses CSV_DIR - from N predvals*.csv, output 1 nmses.csv
 
   pej getdid DT_ADDR - from datatoken address, output did
 """
@@ -86,7 +86,7 @@ Usage: pej getentries ST FIN CSV_DIR
 
 @enforce_types
 def do_getpreds():
-    HELP = f"""from 1 entries.csv, output predvals_DTADDRX.csv
+    HELP = f"""from 1 entries.csv, output predvals_DT_ADDRX.csv
 
 Usage: pej getpreds CSV_DIR
     CSV_DIR -- input & output dir
@@ -157,7 +157,7 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {
 
 @enforce_types
 def do_getnmses():
-    HELP = f"""From N predvals_DTADDRX.csv, output 1 nmses.csv
+    HELP = f"""From N predvals*.csv, output 1 nmses.csv
 
 Usage: pej getnmses CSV_DIR
   CSV_DIR -- input & output dir
@@ -198,7 +198,7 @@ Usage: pej getnmses CSV_DIR
     cex_vals = filter_to_target_uts(target_uts, allcex_uts, allcex_vals)
     print(f"cex ETH price is ${cex_vals[0]} at start_dt of {start_dt}")
 
-    pred_names = glob.glob(os.path.join(CSV_DIR, "predvals_DT*.csv"))
+    pred_names = glob.glob(os.path.join(CSV_DIR, "predvals*.csv"))
     n = len(pred_names)
     for i, pred_name in enumerate(pred_names):
         print("="*60)
@@ -207,10 +207,11 @@ Usage: pej getnmses CSV_DIR
         #get predicted ETH values
         print(f"pred_name: {pred_name}")
         pred_vals = load_list(pred_name)
+        print(f"pred_vals: {pred_vals}")
 
         #calc nmse, plot
         nmse = calc_nmse(cex_vals, pred_vals)
-        print(f"NMSE = {nmse}")
+        print(f"NMSE = {nmse:.8f}")
         plot_prices(cex_vals, pred_vals)
         
         print(f"DT #{i+1}/{n}: Done")
