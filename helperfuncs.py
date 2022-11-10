@@ -2,6 +2,7 @@
 
 #imports
 import datetime
+from datetime import timezone
 import numpy as np
 from pathlib import Path
 import os
@@ -37,9 +38,10 @@ def create_alice_wallet(ocean: Ocean):
 
 #helper functions: time
 def to_unixtime(dt: datetime.datetime):
-    ut = time.mktime(dt.timetuple())
-    dt2 = to_datetime(ut)
-    assert dt2 == dt, f"dt: {dt}, dt2: {dt2}" #it's making dt2 6 hours ahead
+    #must account for timezone, otherwise it's off
+    ut = dt.replace(tzinfo=timezone.utc).timestamp()
+    dt2 = datetime.datetime.utcfromtimestamp(ut) #to_datetime() approach
+    assert dt2 == dt, f"dt: {dt}, dt2: {dt2}"
     return ut
 
 
@@ -49,6 +51,8 @@ def to_unixtimes(dts: list) -> list:
 
 def to_datetime(ut) -> datetime.datetime:
     dt = datetime.datetime.utcfromtimestamp(ut)
+    ut2 = dt.replace(tzinfo=timezone.utc).timestamp() #to_unixtime() approach
+    assert ut2 == ut, f"ut: {ut}, ut2: {ut2}"
     return dt
 
 
