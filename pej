@@ -180,6 +180,7 @@ Usage: pej getnmses CSV_DIR
     
     # main work
     start_dt = datetime.datetime(2022, 11, 7, 3, 59) #Nov 6, 2022 at 11:59pm Eastern (=03:59 UTC)
+    start_dt = round_to_nearest_hour(start_dt) # so that times line up
     print(f"start_dt is hardcoded to: {start_dt}") # FIXME make not hardcoded
     target_uts = target_12h_unixtimes(start_dt)
     print_datetime_info("target times", target_uts)
