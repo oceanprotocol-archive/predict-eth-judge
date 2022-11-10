@@ -197,6 +197,7 @@ Usage: pej getnmses CSV_DIR
     #print_datetime_info("CEX data info", allcex_uts)
     cex_vals = filter_to_target_uts(target_uts, allcex_uts, allcex_vals)
     print(f"cex ETH price is ${cex_vals[0]} at start_dt of {start_dt}")
+    print(f"cex_vals: {cex_vals}")
 
     pred_names = glob.glob(os.path.join(CSV_DIR, "predvals*.csv"))
     n = len(pred_names)
