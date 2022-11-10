@@ -255,9 +255,6 @@ def _nftAddrToDid(nft_addr: str, chainID: int, ocean) -> str:
 # from ocean.py/ocean_lib/utils/utilities.py
 @enforce_types
 def create_checksum(text: str) -> str:
-    """
-    :return: str
-    """
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
