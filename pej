@@ -243,8 +243,8 @@ def _dtAddrToDid(dt_addr: str, ocean) -> str:
 @enforce_types
 def _dtAddrToNftAddr(dt_addr: str, ocean) -> str:
     dt_addr = brownie.web3.toChecksumAddress(dt_addr)
-    dt = Datatoken(brownie.web3, dt_addr)
-    nft_addr = dt.get_erc721_address()
+    dt = Datatoken(ocean.config_dict, dt_addr)
+    nft_addr = dt.getERC721Address()
     return nft_addr
 
 @enforce_types
