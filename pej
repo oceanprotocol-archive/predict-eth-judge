@@ -126,8 +126,6 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {
         did = _dtAddrToDid(dt_addr, ocean)
         asset = ocean.assets.resolve(did)
         assert asset.did == did
-
-        import pdb; pdb.set_trace()
         
         # Alice sends a datatoken to the service, to get access
         order_tx_id = ocean.assets.pay_for_access_service(asset, alice_wallet)
