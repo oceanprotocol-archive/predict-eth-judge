@@ -37,7 +37,10 @@ def create_alice_wallet(ocean: Ocean):
 
 #helper functions: time
 def to_unixtime(dt: datetime.datetime):
-    return time.mktime(dt.timetuple())
+    ut = time.mktime(dt.timetuple())
+    dt2 = to_datetime(ut)
+    assert dt2 == dt, f"dt: {dt}, dt2: {dt2}" #it's making dt2 6 hours ahead
+    return ut
 
 
 def to_unixtimes(dts: list) -> list:
@@ -45,7 +48,8 @@ def to_unixtimes(dts: list) -> list:
 
 
 def to_datetime(ut) -> datetime.datetime:
-    return datetime.datetime.utcfromtimestamp(ut)
+    dt = datetime.datetime.utcfromtimestamp(ut)
+    return dt
 
 
 def to_datetimes(uts: list) -> list:
@@ -72,7 +76,11 @@ def print_datetime_info(descr:str, uts: list):
 
 def target_12h_unixtimes(start_dt: datetime.datetime) -> list:
     target_dts = [start_dt + datetime.timedelta(hours=h) for h in range(12)]
+    assert target_dts[0] == start_dt
+    
     target_uts = to_unixtimes(target_dts)
+    assert to_datetime(target_uts[0]) == start_dt
+    
     return target_uts
 
 
