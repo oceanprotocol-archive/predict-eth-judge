@@ -13,7 +13,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from ocean_lib.example_config import get_config_dict
-from ocean_lib.ocean.ocean import Ocean
+from ocean_lib.ocean.ocean import Ocean 
 from ocean_lib.web3_internal.utils import connect_to_network
 
 JUDGES_ADDRESS = "0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E"
