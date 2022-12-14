@@ -32,7 +32,10 @@ source venv/bin/activate
 
 #install dependencies. "--pre" is to allow pre-releases
 pip install wheel
-pip install --pre -r requirements.txt
+
+# pip install --pre -r requirements.txt # has issues, so break it into the following two lines
+pip install ccxt enforce_typing numpy matplotlib
+pip install --pre ocean-lib
 
 #add pwd to bash path
 export PATH=$PATH:.
