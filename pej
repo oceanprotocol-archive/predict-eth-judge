@@ -72,7 +72,7 @@ Usage: pej getentries ST FIN CSV_DIR
     # hardcoded entries for predict-eth Round 2, due Dec 12 
     # (manually entered via copy & paste from polygonscan)
     dt_addrs = [
-        "0x382d50AC6D24aF9F4A54500eb5861b2BDeb3765C", # Andreea Toma
+        # "0x382d50AC6D24aF9F4A54500eb5861b2BDeb3765C", # Andreea Toma. BUT, didn't share datatoken to judges
         "0xb8187192f79E88eF942E50Ba433B71b6d226D5e1", # Andra Shym 
         "0xDaFF4387C1aa596370EA6B51316Ea81D5Bd32805", # Andrey Bessalov
         #"", # John Wang - no datatoken, but got predictions via github
@@ -130,17 +130,17 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {
     for i, dt_addr in enumerate(dt_addrs):
         print(f"DT #{i+1}/{n}: Begin")
         did = _dtAddrToDid(dt_addr, ocean)
-        asset = ocean.assets.resolve(did)
-        assert asset.did == did
+        ddo = ocean.assets.resolve(did)
+        assert ddo.did == did
         
         # Alice sends a datatoken to the service, to get access
-        order_tx_id = ocean.assets.pay_for_access_service(asset, alice_wallet)
+        order_tx_id = ocean.assets.pay_for_access_service(ddo, alice_wallet)
         print(f"order_tx_id = '{order_tx_id}'")
 
         # Alice downloads the file
         # If the connection breaks, Alice can request again by showing order_tx_id.
         old_pred_path = ocean.assets.download_asset(
-            asset=asset,
+            ddo=ddo,
             consumer_wallet=alice_wallet,
             destination='./',
             order_tx_id=order_tx_id
