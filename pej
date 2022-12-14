@@ -69,11 +69,24 @@ Usage: pej getentries ST FIN CSV_DIR
     # transactions that shared token to judges:
     # https://polygonscan.com/address/0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E#tokentxns
 
-    # hardcoded entries for Web3 ATL hackathon, due Nov 6 2022
+    # hardcoded entries for predict-eth Round 2, due Dec 12 
     # (manually entered via copy & paste from polygonscan)
     dt_addrs = [
-        "0xdf2857f2f9f1f2a227ca0f00c20190ff7d7a05a0", #https://market.oceanprotocol.com/asset/did:op:f04ae0cb2bc7d48c0402b79975dcb21703f73b1188379ac890b22d12c012a8a8
-	"0x277475e34ce4f787d8c3b1dca98c6407470407a3", #https://market.oceanprotocol.com/asset/did:op:8507336b06a15d6d189113db6006f67176736e91bea00a7b7a6df2ce5a7f0de5
+        #from polygonscan, though sender = 0
+        "0x8852ecf1c4fbd756d98e127b441468d8e79e89c822e9a349355df70cd9ed9c8f", 
+	"0xdac174256bd8176cce5d2f14b545d88a52e2fe681e691dc81520f2562d826a48", 
+        "0x4ac885dad7e0e9bc4c0303bd929ed0c601517fa3ced1ed18fb217d13e07ece11", 
+	"0x4d42af3a125d1c711477b30e59839738bf6ba40911f59828b78640e692a4014d", 
+	"0xab2e75ce055baea1b0f81170c3469d37daedb08270e570e1a6854ec448039c3e",
+
+        #from GSheet
+        "0x382d50AC6D24aF9F4A54500eb5861b2BDeb3765C", # Andreea Toma
+        "0xb8187192f79E88eF942E50Ba433B71b6d226D5e1", # Andra Shym 
+        "0xDaFF4387C1aa596370EA6B51316Ea81D5Bd32805", # Andrey Bessalov
+        #"", # John Wang - no datatoken, but got predictions via github
+        # "", # David Lopez - no datatoken, but got predictions via github
+        #"", # Hoe Jun Lung - no predictions
+        # "", # Shikhar Ahuja - no predictions
 	]
     
     save_list(dt_addrs, entries_file_name)
