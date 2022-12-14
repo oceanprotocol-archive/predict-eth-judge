@@ -20,8 +20,8 @@ JUDGES_ADDRESS = "0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E"
 
 #helper functions: setup
 def create_ocean_instance() -> Ocean:
-    connect_to_network("polygon")
-    config = get_config_dict("polygon")
+    connect_to_network("polygon-main")
+    config = get_config_dict("polygon-main")
     ocean = Ocean(config)
     return ocean
 
