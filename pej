@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # pylint: disable=too-many-lines
 import datetime
-import os
-import sys
 import functools
+import os
+import shutil
+import sys
 
 import brownie
 import ccxt
@@ -72,13 +73,13 @@ Usage: pej getentries ST FIN CSV_DIR
     # hardcoded entries for predict-eth Round 2, due Dec 12 
     # (manually entered via copy & paste from polygonscan)
     dt_addrs = [
-        # "0x382d50AC6D24aF9F4A54500eb5861b2BDeb3765C", # Andreea Toma. BUT, didn't share datatoken to judges
-        "0xb8187192f79E88eF942E50Ba433B71b6d226D5e1", # Andra Shym 
-        "0xDaFF4387C1aa596370EA6B51316Ea81D5Bd32805", # Andrey Bessalov
-        #"", # John Wang - no datatoken, but got predictions via github
-        # "", # David Lopez - no datatoken, but got predictions via github
-        #"", # Hoe Jun Lung - no predictions
-        # "", # Shikhar Ahuja - no predictions
+        "0xb8187192f79E88eF942E50Ba433B71b6d226D5e1", # Andra Shym 0xD428
+        "0xDaFF4387C1aa596370EA6B51316Ea81D5Bd32805", # Andrey Bessalov 0xd732
+        "0xd272b173f770dd8e48d30823f0a2952952133f9a", # Hoe Jun Lung 0x21F0
+        "0x382d50AC6D24aF9F4A54500eb5861b2BDeb3765C", # Andreea Toma 0xA8FE. 
+        #"", # John Wang 0x743c - no datatoken, but gave predictions via github
+        # "", # David Lopez 0xeF3D - no datatoken, but gave predictions via github
+        # "", # Shikhar Ahuja - no datatoken, but gave predictions via email
 	]
     
     save_list(dt_addrs, entries_file_name)
@@ -186,7 +187,7 @@ Usage: pej getnmses CSV_DIR
     # == main work ==
 
     # specify target times
-    start_dt = datetime.datetime(2022, 11, 7, 5, 00) #Nov 7, 2022 at 5.00 UTC (1.00am Eastern)
+    start_dt = datetime.datetime(2022, 12, 12, 5, 00) #2022-month-day12 at 11.00 UTC
     print(f"start_dt is hardcoded to: {start_dt}") # FIXME make not hardcoded
     
     start_dt = round_to_nearest_hour(start_dt) # so that times line up
