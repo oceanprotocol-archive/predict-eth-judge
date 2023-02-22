@@ -15,7 +15,7 @@ import hashlib
 from predict_eth.helpers import *
 from ocean_lib.models.datatoken import Datatoken
 
-CHAINID = 137 # Polygon mainnet - where submissions are
+CHAINID = 80001 # Mumbai mainnet - where submissions are
 
 # ========================================================================
 HELP_MAIN = f"""predict-eth-judge
@@ -68,7 +68,7 @@ Usage: pej getentries ST FIN CSV_DIR
     print("NOTE: this is currently hardcoded, it doesn't actually query")
 
     # transactions that shared token to judges:
-    # https://polygonscan.com/address/0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E#tokentxns
+    # https://mumbai.polygonscan.com/address/0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E#tokentxns
 
     # hardcoded entries for predict-eth Round 2, due Dec 12 
     # (manually entered via copy & paste from polygonscan)
