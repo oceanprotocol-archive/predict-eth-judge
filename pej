@@ -101,12 +101,15 @@ Usage: pej getentries ST FIN CSV_DIR
 
 @enforce_types
 def do_getpreds():
-    HELP = f"""from 1 entries.csv, output predvals_DT_ADDRX.csv
+    ocean = create_ocean_instance("polygon-test")
+    alice_wallet = create_alice_wallet(ocean) # uses REMOTE_TEST_PRIVATE_KEY1
+    
+    HELP = f"""from entries.csv, output predvals_DT_ADDRX.csv
 
 Usage: pej getpreds CSV_DIR
     CSV_DIR -- input & output dir
 
-Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {JUDGES_ADDRESS}
+Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {alice_wallet.address}
 """
     if len(sys.argv) not in [2 + 1]:
         print(HELP)
@@ -130,8 +133,8 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {
         sys.exit(0)
 
     #main work
-    ocean = create_ocean_instance()
-    alice_wallet = create_alice_wallet(ocean) #you're Alice
+    ocean = create_ocean_instance("polygon-test")
+    alice_wallet = create_alice_wallet(ocean) # uses REMOTE_TEST_PRIVATE_KEY1
     
     dt_addrs = load_list(entries_file_name)
     n = len(dt_addrs)
