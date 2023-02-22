@@ -102,14 +102,14 @@ Usage: pej getentries ST FIN CSV_DIR
 @enforce_types
 def do_getpreds():
     ocean = create_ocean_instance("polygon-test")
-    alice_wallet = create_alice_wallet(ocean) # uses REMOTE_TEST_PRIVATE_KEY1
+    alice = create_alice_wallet(ocean) # uses REMOTE_TEST_PRIVATE_KEY1
     
     HELP = f"""from entries.csv, output predvals_DT_ADDRX.csv
 
 Usage: pej getpreds CSV_DIR
     CSV_DIR -- input & output dir
 
-Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {alice_wallet.address}
+Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {alice.address}
 """
     if len(sys.argv) not in [2 + 1]:
         print(HELP)
@@ -134,7 +134,7 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {
 
     #main work
     ocean = create_ocean_instance("polygon-test")
-    alice_wallet = create_alice_wallet(ocean) # uses REMOTE_TEST_PRIVATE_KEY1
+    alice = create_alice_wallet(ocean) # uses REMOTE_TEST_PRIVATE_KEY1
     
     dt_addrs = load_list(entries_file_name)
     n = len(dt_addrs)
@@ -147,14 +147,14 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {
         assert ddo.did == did
         
         # Alice sends a datatoken to the service, to get access
-        order_tx_id = ocean.assets.pay_for_access_service(ddo, alice_wallet)
+        order_tx_id = ocean.assets.pay_for_access_service(ddo, {"from":alice})
         print(f"order_tx_id = '{order_tx_id}'")
 
         # Alice downloads the file
         # If the connection breaks, Alice can request again by showing order_tx_id.
         old_pred_path = ocean.assets.download_asset(
             ddo=ddo,
-            consumer_wallet=alice_wallet,
+            consumer_wallet=alice,
             destination='./',
             order_tx_id=order_tx_id
         )        
