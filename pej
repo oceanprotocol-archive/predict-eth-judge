@@ -74,17 +74,17 @@ Usage: pej getentries ST FIN CSV_DIR
     # (manually entered via copy & paste from polygonscan)
     dt_addrs = [
         # == round 3, maybe valid (ie not invalid bc late submit). Newest first 
-        "0xf9345961df4ace61a61de21270c2d184a16b2ddb", # tx 0x14b0 from 0x09cc
-        "0xef34c53fa6fd77398aa238726f0bfc8522cb0744", # tx 0x56f6 from 0x3d87
-        "0xe8f161fd603e120e5a73304a8d4d7c7a7ae15546", # tx 0xbcf8 from 0x71d1
-        "0xb17494ff6edf4066bf4c98122695755c804bd19e", # tx 0x0b37 from 0xa6fb
-        "0xd2aa7e6ed030336000ff682b32e1635741da578c", # tx 0x5bff from 0xe786
-        "0x24c5b338c09bc7d500a7a9ee8bf401d66f854ecc", # tx 0xd23c from 0xcc9b
-        "0xfc56b31cbbed368aa52499eab46ebef59e59758f", # tx 0x7f0c from 0x20a0
-        "0xcd45ee14d91afec9d0ce819a2ae2facbc99ff49a", # tx 0xcce7 from 0x20a0
-        "0x2c8ef881ab8c90dc111d4551ebe377bd2d67ab73", # tx 0x9f5b from 0xa8fe (may be too old. 2023-02-19 12:40:07 UTC)
-        "0x12299fae47e834b691bc7271a39f7ffd0c66de85", # tx 0x720e from 0xd428 (may be too old. 2023-02-18 20:05:21 UTC)
-        "0xf4ce8d447ced2bdc2cc52115cfe70a6f0d9ad9b0", # tx 0xa126 from 0x108f (may be too old. 2023-02-18  2:15:09 UTC)
+        "0xf9345961df4ace61a61de21270c2d184a16b2ddb", # tx 0x14b0 from 0x09cc. Sane predvals? Y 
+        "0xef34c53fa6fd77398aa238726f0bfc8522cb0744", # tx 0x56f6 from 0x3d87. Sane predvals? Y 
+        "0xe8f161fd603e120e5a73304a8d4d7c7a7ae15546", # tx 0xbcf8 from 0x71d1. Sane predvals? Y 
+        "0xd2aa7e6ed030336000ff682b32e1635741da578c", # tx 0x5bff from 0xe786. Sane predvals? Y
+        "0x24c5b338c09bc7d500a7a9ee8bf401d66f854ecc", # tx 0xd23c from 0xcc9b. Sane predvals? Y
+        "0x2c8ef881ab8c90dc111d4551ebe377bd2d67ab73", # tx 0x9f5b from 0xa8fe. Sane predvals? Y (old-ish. 2023-02-19 12:40:07 UTC)
+        "0x12299fae47e834b691bc7271a39f7ffd0c66de85", # tx 0x720e from 0xd428. Sane predvals? Y (old-ish. 2023-02-18 20:05:21 UTC)
+        "0xb17494ff6edf4066bf4c98122695755c804bd19e", # tx 0x0b37 from 0xa6fb. Sane predvals? TBD. html file from Ardrive, no predictions inside
+        "0xfc56b31cbbed368aa52499eab46ebef59e59758f", # tx 0x7f0c from 0x20a0. Sane predvals? TBD. html file from Ardrive, no predictions inside
+        "0xcd45ee14d91afec9d0ce819a2ae2facbc99ff49a", # tx 0xcce7 from 0x20a0. Sane predvals? TBD. html file from ardrive, no predictions inside
+        "0xf4ce8d447ced2bdc2cc52115cfe70a6f0d9ad9b0", # tx 0xa126 from 0x108f. Sane predvals? TBD. html file from Ardrive, no predictions inside (old-ish. 2023-02-18  2:15:09 UTC)
         
         # == round 3, invalid bc late submit. Newest first
         #"0x5e02b2f6037b09d932b28ed14168174dda65037a", # tx 0x78fc from 0xf816
