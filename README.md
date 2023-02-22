@@ -30,12 +30,9 @@ python -m venv venv
 #activate env
 source venv/bin/activate
 
-#install dependencies. "--pre" is to allow pre-releases
+#install dependencies
 pip install wheel
-
-# pip install --pre -r requirements.txt # has issues, so break it into the following two lines
-pip install ccxt enforce_typing numpy matplotlib
-pip install --pre ocean-lib
+pip install ocean-lib predict-eth ccxt enforce_typing numpy matplotlib
 
 #add pwd to bash path
 export PATH=$PATH:.

@@ -12,7 +12,7 @@ from enforce_typing import enforce_types
 import glob
 import hashlib
 
-from helperfuncs import * #tools from predict-eth repo
+from predict_eth.helpers import *
 from ocean_lib.models.datatoken import Datatoken
 
 CHAINID = 137 # Polygon mainnet - where submissions are
