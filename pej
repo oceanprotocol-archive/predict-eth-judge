@@ -15,7 +15,12 @@ import hashlib
 from predict_eth.helpers import *
 from ocean_lib.models.datatoken import Datatoken
 
-CHAINID = 80001 # Mumbai mainnet - where submissions are
+## Set network. Change this one line if needed. *Supposed* to be "polygon-test"
+NETWORK_NAME = "polygon-test" # polygon-test (Mumbai), goerli, ..
+
+# Auto-calc chainid
+NAME_TO_CHAINID = {"polygon-test":80001, "goerli":5}
+CHAINID = NAME_TO_CHAINID[NETWORK_NAME]
 
 # ========================================================================
 HELP_MAIN = f"""predict-eth-judge
@@ -27,6 +32,8 @@ Usage: pej getentries|getpreds|getnmses
   pej getnmses CSV_DIR - from N predvals*.csv, output 1 nmses.csv
 
   pej getdid DT_ADDR - from datatoken address, output did
+
+Hard-coded values: NETWORK_NAME={NETWORK_NAME}, CHAINID={CHAINID}
 """
 
 
@@ -68,7 +75,7 @@ Usage: pej getentries ST FIN CSV_DIR
     print("NOTE: this is currently hardcoded, it doesn't actually query")
 
     # transactions that shared token to judges:
-    # https://mumbai.polygonscan.com/address/0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E#tokentxns
+    # https://mumbai.polygonscan.com/address/0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E#tokentxns (or similar for other networks)
 
     # hardcoded entries for predict-eth Round 3, due Feb 20, 2023
     # (manually entered via copy & paste from polygonscan)
@@ -101,7 +108,7 @@ Usage: pej getentries ST FIN CSV_DIR
 
 @enforce_types
 def do_getpreds():
-    ocean = create_ocean_instance("polygon-test")
+    ocean = create_ocean_instance(NETWORK_NAME)
     alice = create_alice_wallet(ocean) # uses REMOTE_TEST_PRIVATE_KEY1
     
     HELP = f"""from entries.csv, output predvals_DT_ADDRX.csv
@@ -133,7 +140,7 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {
         sys.exit(0)
 
     #main work
-    ocean = create_ocean_instance("polygon-test")
+    ocean = create_ocean_instance(NETWORK_NAME)
     alice = create_alice_wallet(ocean) # uses REMOTE_TEST_PRIVATE_KEY1
     
     dt_addrs = load_list(entries_file_name)
