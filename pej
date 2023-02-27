@@ -34,6 +34,7 @@ Usage: pej getentries|getpreds|getnmses
   pej getdid DT_ADDR - from datatoken address, output did
 
 Hard-coded values: NETWORK_NAME={NETWORK_NAME}, CHAINID={CHAINID}
+Ennvar expected: REMOTE_TEST_PRIVATE_KEY1 (for judges' account)
 """
 
 
