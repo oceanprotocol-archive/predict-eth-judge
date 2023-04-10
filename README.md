@@ -7,11 +7,13 @@ For judges of the predict-eth competition, a script to compute each submission's
 ```text
 Usage: pej getentries|getpreds|getnmses
 
-  pej getentries ST FIN CSV_DIR - query chain, output 1 entries.csv
-  pej getpreds CSV_DIR - from 1 entries.csv, output N predvals_DTADDRX.csv
-  pej getnmses CSV_DIR - from N predvals_DTADDRX.csv, output 1 nmses.csv
+  Follow these steps:
+  1. pej getentries ST FIN CSV_DIR - from chain, output 1 entries.csv
+  2. pej getpreds CSV_DIR - from 1 entries.csv, output N predvals_NFT_ADDRX.csv
+  3. pej getnmses CSV_DIR - from N predvals*.csv, output 1 nmses.csv
 
-  pej getdid DT_ADDR - from datatoken address, output did
+Hard-coded values: NETWORK_NAME={NETWORK_NAME}, CHAINID={CHAINID}
+Ennvar expected: REMOTE_TEST_PRIVATE_KEY1 (for judges' account)
 ```
 
 
