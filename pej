@@ -81,35 +81,7 @@ Usage: pej getentries ST FIN CSV_DIR
   FIN -- last block # to calc on | YYYY-MM-DD | YYYY-MM-DD_HH:MM | latest
   CSV_DIR -- output dir for entries.csv
 """
-    if len(sys.argv) not in [2 + 3]:
-        print(HELP)
-        sys.exit(0)
-
-    # extract inputs
-    assert sys.argv[1] == "getentries"
-    ST, FIN = sys.argv[2], sys.argv[3]
-    CSV_DIR = sys.argv[4]
-    print("pej getentries: Begin")
-    print(f"Args: ST={ST}, FIN={FIN}, CSV_DIR={CSV_DIR}")
-
-    # create dir if not exists
-    _createDirIfNeeded(CSV_DIR)
-    entries_file_name = _entriesCsvFilename(CSV_DIR)
-    _exitIfFileExists(entries_file_name)
-
-    # main work
-    
-    # rng = blockrange.create_range(chain, ST, FIN, NSAMP, SECRET_SEED)
-    print("NOTE: this is currently hardcoded, it doesn't actually query")
-
-
-    nft_addrs = [
-	]
-    
-    save_list(nft_addrs, entries_file_name)
-
-    print(f"pej getentries: Done. There were {len(nft_addrs)} entries")
-
+    return HELP
 
 # ========================================================================
 
@@ -170,8 +142,8 @@ def nft_addr_to_pred_vals(nft_addr:str, ocean, alice) -> List[float]:
     #  https://github.com/oceanprotocol/predict-eth/blob/main/challenges/main4.md
 
     # get predicted ETH values
-    data_nft = DataNFT(ocean.config_dict, data_nft_addr)
-    pred_vals_str_enc = data_nft.get_data("predictions")
+    nft = DataNFT(ocean.config_dict, nft_addr)
+    pred_vals_str_enc = nft.get_data("predictions")
     pred_vals_str = crypto.asym_decrypt(pred_vals_str_enc, alice.private_key)
     pred_vals = [float(s) for s in pred_vals_str[1:-1].split(',')]
 
