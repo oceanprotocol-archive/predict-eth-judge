@@ -30,7 +30,7 @@ HELP_MAIN = f"""predict-eth-judge
 Usage: pej getentries|getpreds|getnmses
 
   Follow these steps:
-  1. pej getentries ST FIN CSV_DIR - from chain, output 1 entries.csv
+  1. pej getentries - from chain, output 1 entries.csv
   2. pej getpreds CSV_DIR - from 1 entries.csv, output N predvals_NFT_ADDRX.csv
   3. pej getnmses CSV_DIR - from N predvals*.csv, output 1 nmses.csv
 
@@ -52,30 +52,33 @@ def do_getentries():
 
 This is currently *manual*. Here are the steps to follow.
 
-1. Go to this page: it's the ER721 txs shared to judges
-https://mumbai.polygonscan.com/address/0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E#tokentxnsErc721
+0. In bash:
+  export CSV_DIR=/home/trentmc/outdir-round4/
+  mkdir $CSV_DIR
+  cd $CSV_DIR
 
-2. From that link, click button to export csv
+1. From browser, export txs of ER721 txs shared to judges 
+  1.1. Go to https://mumbai.polygonscan.com/address/0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E#tokentxnsErc721
+  1.2  Cick button to export csv
 
-3. Load the new csv in libreoffice or other
-  3.1 filter the csv to:
+2. Create a filtered csv, via libreoffice or other
+  2.1 Load the new csv
+  2.2 Filter the csv to:
    -remove all but rows that are recent (the previous week), and on time
    -remove all columns but the one with contract address (= nft address)
    -remove the header row
-  3.2 then save as ~/export.csv
+  2.3 Then, "save as" with filename ~/export.csv
 
-4. In bash: 
-  mkdir outdir-roundx
-  cd outdir-roundx
-  cat ~/export.csv |tr '\n' ', ' | sed -e 's/,/\",\"/g' > entries.csv
-
-5. Open entries.csv in emacs or other. Clean up its beginning and end, so it looks like:
-  ["0x1234", "0x2349", ..., "0xabc123"]
+3. Create an "entries.csv" file that's friendly for pej. 
+  3.1 In bash: 
+    cat ~/export.csv |tr '\n' ', ' | sed -e 's/,/\",\"/g' > entries.csv
+  3.2 Open entries.csv in emacs or other. Clean up its beginning and end, so it looks like: 
+    ["0x1234", "0x2349", ..., "0xabc123"]
 
 *Future* usage may be something like:
 Usage: pej getentries ST FIN CSV_DIR
-  ST -- first block # to calc on | YYYY-MM-DD | YYYY-MM-DD_HH:MM
-  FIN -- last block # to calc on | YYYY-MM-DD | YYYY-MM-DD_HH:MM | latest
+  ST -- first block # to calc on | YYYY-MM-DD_HH:MM
+  FIN -- last block # to calc on | YYYY-MM-DD_HH:MM | latest
   CSV_DIR -- output dir for entries.csv
 """
     print(HELP)
@@ -126,7 +129,7 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {
     for i, nft_addr in enumerate(nft_addrs):
         print(f"NFT #{i+1}/{n}: Begin. nft_addr={nft_addr}")
         pred_vals = nft_addr_to_pred_vals(nft_addr, ocean, alice) #main call
-        file_name = os.path.join(CSV_DIR, "predvals_NFT_{nft_addr}.csv")
+        file_name = os.path.join(CSV_DIR, f"predvals_NFT_{nft_addr}.csv")
         save_list(pred_vals, file_name)
         print(f"Entry #{i+1}/{n}: done")
 
@@ -142,7 +145,10 @@ def nft_addr_to_pred_vals(nft_addr:str, ocean, alice) -> List[float]:
     nft = DataNFT(ocean.config_dict, nft_addr)
     pred_vals_str_enc = nft.get_data("predictions")
     pred_vals_str = crypto.asym_decrypt(pred_vals_str_enc, alice.private_key)
-    pred_vals = [float(s) for s in pred_vals_str[1:-1].split(',')]
+    try:
+        pred_vals = [float(s) for s in pred_vals_str[1:-1].split(',')]
+    except:
+        import pdb; pdb.set_trace()
 
     return pred_vals
 
