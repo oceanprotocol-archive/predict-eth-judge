@@ -48,7 +48,7 @@ def do_help():
 # ========================================================================
 @enforce_types
 def do_getentries():
-    HELP = f"""from chain, output entries.csv, which holds data NFT addrs
+    HELP = f"""From chain, output entries.csv, which holds data NFT addrs
 
 This is currently *manual*. Here are the steps to follow.
 
@@ -72,16 +72,13 @@ https://mumbai.polygonscan.com/address/0xA54ABd42b11B7C97538CAD7C6A2820419ddF703
 5. Open entries.csv in emacs or other. Clean up its beginning and end, so it looks like:
   ["0x1234", "0x2349", ..., "0xabc123"]
 
---
-
 *Future* usage may be something like:
-
 Usage: pej getentries ST FIN CSV_DIR
   ST -- first block # to calc on | YYYY-MM-DD | YYYY-MM-DD_HH:MM
   FIN -- last block # to calc on | YYYY-MM-DD | YYYY-MM-DD_HH:MM | latest
   CSV_DIR -- output dir for entries.csv
 """
-    return HELP
+    print(HELP)
 
 # ========================================================================
 
