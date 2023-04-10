@@ -5,6 +5,7 @@ import functools
 import os
 import shutil
 import sys
+from typing import List
 
 import brownie
 import ccxt
@@ -13,7 +14,8 @@ import glob
 import hashlib
 
 from predict_eth.helpers import *
-from ocean_lib.models.datatoken import Datatoken
+from ocean_lib.models.data_nft import DataNFT
+from ocean_lib.ocean import crypto
 
 ## Set network. Change this one line if needed. *Supposed* to be "polygon-test"
 NETWORK_NAME = "polygon-main" # polygon-test (Mumbai), polygon-main, goerli, ..
@@ -27,11 +29,10 @@ HELP_MAIN = f"""predict-eth-judge
 
 Usage: pej getentries|getpreds|getnmses
 
-  pej getentries ST FIN CSV_DIR - query chain, output 1 entries.csv
-  pej getpreds CSV_DIR - from 1 entries.csv, output N predvals_DT_ADDRX.csv
-  pej getnmses CSV_DIR - from N predvals*.csv, output 1 nmses.csv
-
-  pej getdid DT_ADDR - from datatoken address, output did
+  Follow these steps:
+  1. pej getentries ST FIN CSV_DIR - from chain, output 1 entries.csv
+  2. pej getpreds CSV_DIR - from 1 entries.csv, output N predvals_NFT_ADDRX.csv
+  3. pej getnmses CSV_DIR - from N predvals*.csv, output 1 nmses.csv
 
 Hard-coded values: NETWORK_NAME={NETWORK_NAME}, CHAINID={CHAINID}
 Ennvar expected: REMOTE_TEST_PRIVATE_KEY1 (for judges' account)
@@ -47,7 +48,33 @@ def do_help():
 # ========================================================================
 @enforce_types
 def do_getentries():
-    HELP = f"""query chain, output entries.csv, which holds datatoken addrs
+    HELP = f"""from chain, output entries.csv, which holds data NFT addrs
+
+This is currently *manual*. Here are the steps to follow.
+
+1. Go to this page: it's the ER721 txs shared to judges
+https://mumbai.polygonscan.com/address/0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E#tokentxnsErc721
+
+2. From that link, click button to export csv
+
+3. Load the new csv in libreoffice or other
+  3.1 filter the csv to:
+   -remove all but rows that are recent (the previous week), and on time
+   -remove all columns but the one with contract address (= nft address)
+   -remove the header row
+  3.2 then save as ~/export.csv
+
+4. In bash: 
+  mkdir outdir-roundx
+  cd outdir-roundx
+  cat ~/export.csv |tr '\n' ', ' | sed -e 's/,/\",\"/g' > entries.csv
+
+5. Open entries.csv in emacs or other. Clean up its beginning and end, so it looks like:
+  ["0x1234", "0x2349", ..., "0xabc123"]
+
+--
+
+*Future* usage may be something like:
 
 Usage: pej getentries ST FIN CSV_DIR
   ST -- first block # to calc on | YYYY-MM-DD | YYYY-MM-DD_HH:MM
@@ -75,33 +102,13 @@ Usage: pej getentries ST FIN CSV_DIR
     # rng = blockrange.create_range(chain, ST, FIN, NSAMP, SECRET_SEED)
     print("NOTE: this is currently hardcoded, it doesn't actually query")
 
-    # transactions that shared token to judges:
-    # https://mumbai.polygonscan.com/address/0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E#tokentxns (or similar for other networks)
 
-    # hardcoded entries for predict-eth Round 3, due Feb 20, 2023
-    # (manually entered via copy & paste from polygonscan)
-    dt_addrs = [
-        # == round 3, DT sent on time
-        "0xf9345961df4ace61a61de21270c2d184a16b2ddb", # tx 0x14b0 from 0x09cc
-        "0xef34c53fa6fd77398aa238726f0bfc8522cb0744", # tx 0x56f6 from 0x3d87
-        "0xe8f161fd603e120e5a73304a8d4d7c7a7ae15546", # tx 0xbcf8 from 0x71d1
-        "0xd2aa7e6ed030336000ff682b32e1635741da578c", # tx 0x5bff from 0xe786
-        "0x24c5b338c09bc7d500a7a9ee8bf401d66f854ecc", # tx 0xd23c from 0xcc9b
-        "0x2c8ef881ab8c90dc111d4551ebe377bd2d67ab73", # tx 0x9f5b from 0xa8fe
-        "0x12299fae47e834b691bc7271a39f7ffd0c66de85", # tx 0x720e from 0xd428
-        "0xb17494ff6edf4066bf4c98122695755c804bd19e", # tx 0x0b37 from 0xa6fb
-        "0xfc56b31cbbed368aa52499eab46ebef59e59758f", # tx 0x7f0c from 0x20a0
-        "0xcd45ee14d91afec9d0ce819a2ae2facbc99ff49a", # tx 0xcce7 from 0x20a0
-        "0xf4ce8d447ced2bdc2cc52115cfe70a6f0d9ad9b0", # tx 0xa126 from 0x108f
-        
-        # == round 3, DT sent late (but maybe the arweave csv was on time)
-        "0x5e02b2f6037b09d932b28ed14168174dda65037a", # tx 0x78fc from 0xf816
-        "0x4006cb3f46052ea344d684e87e8837969541a4fe", # tx 0xfe66 from 0xf816
+    nft_addrs = [
 	]
     
-    save_list(dt_addrs, entries_file_name)
+    save_list(nft_addrs, entries_file_name)
 
-    print(f"pej getentries: Done. There were {len(dt_addrs)} entries")
+    print(f"pej getentries: Done. There were {len(nft_addrs)} entries")
 
 
 # ========================================================================
@@ -110,9 +117,11 @@ Usage: pej getentries ST FIN CSV_DIR
 @enforce_types
 def do_getpreds():
     ocean = create_ocean_instance(NETWORK_NAME)
+    alice_private_key = os.getenv("REMOTE_TEST_PRIVATE_KEY1")
+    assert alice_private_key is not None, "need envvar REMOTE_TEST_PRIVATE_KEY1"
     alice = create_alice_wallet(ocean) # uses REMOTE_TEST_PRIVATE_KEY1
     
-    HELP = f"""from entries.csv, output predvals_DT_ADDRX.csv
+    HELP = f"""from entries.csv, output predvals_NFT_ADDRX.csv
 
 Usage: pej getpreds CSV_DIR
     CSV_DIR -- input & output dir
@@ -140,53 +149,43 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {
         print(f"\n File {entries_file_name} doesn't exist. Exiting.")
         sys.exit(0)
 
-    #main work
-    ocean = create_ocean_instance(NETWORK_NAME)
-    alice = create_alice_wallet(ocean) # uses REMOTE_TEST_PRIVATE_KEY1
+    #main work    
+    nft_addrs = load_list(entries_file_name)
+    n = len(nft_addrs)
+    print(f"Loaded {n} NFT addrs.")
     
-    dt_addrs = load_list(entries_file_name)
-    n = len(dt_addrs)
-    print(f"Loaded {n} DT addrs.")
-    
-    for i, dt_addr in enumerate(dt_addrs):
-        print(f"DT #{i+1}/{n}: Begin")
-        did = _dtAddrToDid(dt_addr, ocean)
-        ddo = ocean.assets.resolve(did)
-        assert ddo.did == did
-        
-        # Alice sends a datatoken to the service, to get access
-        order_tx_id = ocean.assets.pay_for_access_service(ddo, {"from":alice})
-        print(f"order_tx_id = '{order_tx_id}'")
-
-        # Alice downloads the file
-        # If the connection breaks, Alice can request again by showing order_tx_id.
-        old_pred_path = ocean.assets.download_asset(
-            ddo=ddo,
-            consumer_wallet=alice,
-            destination='./',
-            order_tx_id=order_tx_id
-        )        
-        old_pred_name = glob.glob(os.path.join(old_pred_path, "*"))[0]
-        print(f"old_pred_name={old_pred_name}")
-        
-        new_pred_name = os.path.join(CSV_DIR, f"predvals_DT_{dt_addr}.csv")
-        shutil.copyfile(old_pred_name, new_pred_name)
-        print(f"new_pred_name={new_pred_name}")
-        
+    for i, nft_addr in enumerate(nft_addrs):
+        print(f"NFT #{i+1}/{n}: Begin")
+        pred_vals = nft_addr_to_pred_vals(nft_addr, ocean, alice) #main call
+        file_name = os.path.join(CSV_DIR, "predvals_NFT_{nft_addr}.csv")
+        save_list(pred_vals, file_name)
         print(f"Entry #{i+1}/{n}: done")
 
     print("pej getpreds: Done")
 
 
-# ========================================================================
+@enforce_types
+def nft_addr_to_pred_vals(nft_addr:str, ocean, alice) -> List[float]:
+    # adapted from "What judges will do" in
+    #  https://github.com/oceanprotocol/predict-eth/blob/main/challenges/main4.md
 
+    # get predicted ETH values
+    data_nft = DataNFT(ocean.config_dict, data_nft_addr)
+    pred_vals_str_enc = data_nft.get_data("predictions")
+    pred_vals_str = crypto.asym_decrypt(pred_vals_str_enc, alice.private_key)
+    pred_vals = [float(s) for s in pred_vals_str[1:-1].split(',')]
+
+    return pred_vals
+
+# ========================================================================
 
 @enforce_types
 def do_getnmses():
     HELP = f"""From N predvals*.csv, output 1 nmses.csv
 
-Usage: pej getnmses CSV_DIR
+Usage: pej getnmses CSV_DIR YEAR:MONTH:DAY:HOUR:MIN
   CSV_DIR -- input & output dir
+  YEAR:MONTH:DAY:HOUR:MIN -- start datetime, in UTC. Eg 2023-04-06 1:00 for round 4
 """
     if len(sys.argv) not in [2+1]:
         print(HELP)
@@ -195,9 +194,10 @@ Usage: pej getnmses CSV_DIR
     # extract inputs
     assert sys.argv[1] == "getnmses"
     CSV_DIR = sys.argv[2]
+    DATETIME_STR = sys.argv[2]
     
     print("pej getnmses: Begin")
-    print(f"Args: CSV_DIR={CSV_DIR}")
+    print(f"Args: CSV_DIR={CSV_DIR}, DATETIME={DATETIME_STR}")
 
     # check dir
     if not os.path.exists(CSV_DIR):
@@ -207,11 +207,10 @@ Usage: pej getnmses CSV_DIR
     # == main work ==
 
     # specify target times
-    start_dt = datetime.datetime(2023, 2, 20, 1, 00) #2022-month-day12 at 1.00 UTC
-    print(f"start_dt is hardcoded to: {start_dt}") # FIXME make not hardcoded
-    
+    start_dt = datetime.strptime(DATETIME_STR, '%y-%m-%d %H:%M')
     start_dt = round_to_nearest_hour(start_dt) # so that times line up
-    print(f"start_dt, rounded to nearest hour is: {start_dt}")
+    start_dt_str = datetime.strftime('%y-%m-%d %H:%M')
+    print(f"start_dt = DATETIME rounded to nearest hour = {start_dt_str}")
     
     target_uts = target_12h_unixtimes(start_dt)
     print_datetime_info("target times", target_uts)
@@ -229,7 +228,7 @@ Usage: pej getnmses CSV_DIR
     n = len(pred_names)
     for i, pred_name in enumerate(pred_names):
         print("="*60)
-        print(f"DT #{i+1}/{n}: Begin")
+        print(f"NFT #{i+1}/{n}: Begin")
         
         #get predicted ETH values
         print(f"pred_name: {pred_name}")
@@ -241,60 +240,9 @@ Usage: pej getnmses CSV_DIR
         print(f"NMSE = {nmse:.8f}")
         plot_prices(cex_vals, pred_vals)
         
-        print(f"DT #{i+1}/{n}: Done")
+        print(f"NFT #{i+1}/{n}: Done")
 
     print("pej getnmses: Done")
-
-
-@enforce_types
-def do_getdid():
-    HELP = f"""From datatoken address, output did
-
-Usage: pej getdid DT_ADDR
-  DT_ADDR -- datatoken address
-"""
-    if len(sys.argv) not in [2+1]:
-        print(HELP)
-        sys.exit(0)
-
-    # extract inputs
-    assert sys.argv[1] == "getdid"
-    dt_addr = sys.argv[2]
-        
-    # main work
-    ocean = create_ocean_instance()
-    _dtAddrToDid(dt_addr, ocean)
-
-# ========================================================================
-# dt_addr -> nft_addr -> did utilities
-# adapted from df-py/util/oceanutil.py as of Nov 7, 2022
-
-@enforce_types
-def _dtAddrToDid(dt_addr: str, ocean) -> str:
-    nft_addr = _dtAddrToNftAddr(dt_addr, ocean)
-    did = _nftAddrToDid(nft_addr, CHAINID, ocean)
-    print(f"dt_addr={dt_addr}, nft_addr={nft_addr}, did={did}")
-    return did
-
-@enforce_types
-def _dtAddrToNftAddr(dt_addr: str, ocean) -> str:
-    dt_addr = brownie.web3.toChecksumAddress(dt_addr)
-    dt = Datatoken(ocean.config_dict, dt_addr)
-    nft_addr = dt.getERC721Address()
-    return nft_addr
-
-@enforce_types
-def _nftAddrToDid(nft_addr: str, chainID: int, ocean) -> str:
-    # adapted from ocean.py/ocean_lib/ocean/ocean_assets.py
-    nft_addr = brownie.web3.toChecksumAddress(nft_addr)
-    did = f"did:op:{create_checksum(nft_addr + str(chainID))}"
-    return did
-
-# from ocean.py/ocean_lib/utils/utilities.py
-@enforce_types
-def create_checksum(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
 
 
 # ========================================================================
@@ -330,10 +278,6 @@ def do_main():
         do_getpreds()
     elif sys.argv[1] == "getnmses":
         do_getnmses()
-        
-    # helpers
-    elif sys.argv[1] == "getdid":
-        do_getdid()
     
     else:
         do_help()
