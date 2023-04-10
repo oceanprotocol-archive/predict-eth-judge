@@ -2,20 +2,7 @@
 
 For judges of the predict-eth competition, a script to compute each submission's nmse.
 
-# CLI
-
-```text
-Usage: pej getentries|getpreds|getnmses
-
-  Follow these steps:
-  1. pej getentries ST FIN CSV_DIR - from chain, output 1 entries.csv
-  2. pej getpreds CSV_DIR - from 1 entries.csv, output N predvals_NFT_ADDRX.csv
-  3. pej getnmses CSV_DIR - from N predvals*.csv, output 1 nmses.csv
-
-Hard-coded values: NETWORK_NAME={NETWORK_NAME}, CHAINID={CHAINID}
-Ennvar expected: REMOTE_TEST_PRIVATE_KEY1 (for judges' account)
-```
-
+To use: first do installation, then follow the CLI steps.
 
 # Installation
 
@@ -41,4 +28,18 @@ export PATH=$PATH:.
 
 #set judges private key (needed for "getpreds")
 export REMOTE_TEST_PRIVATE_KEY1=<judges key> 
+```
+
+# CLI
+
+```text
+Usage: pej getentries|getpreds|getnmses
+
+  Follow these steps:
+  1. pej getentries ST FIN CSV_DIR - from chain, output 1 entries.csv
+  2. pej getpreds CSV_DIR - from 1 entries.csv, output N predvals_NFT_ADDRX.csv
+  3. pej getnmses CSV_DIR - from N predvals*.csv, output 1 nmses.csv
+
+Hard-coded values: NETWORK_NAME={NETWORK_NAME}, CHAINID={CHAINID}
+Ennvar expected: REMOTE_TEST_PRIVATE_KEY1 (for judges' account)
 ```
