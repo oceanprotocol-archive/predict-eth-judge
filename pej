@@ -158,18 +158,18 @@ def nft_addr_to_pred_vals(nft_addr:str, ocean, alice) -> List[float]:
 def do_getnmses():
     HELP = f"""From N predvals*.csv, output 1 nmses.csv
 
-Usage: pej getnmses CSV_DIR YEAR:MONTH:DAY:HOUR:MIN
+Usage: pej getnmses CSV_DIR YEAR-MONTH-DAY_HOUR:MIN
   CSV_DIR -- input & output dir
-  YEAR:MONTH:DAY:HOUR:MIN -- start datetime, in UTC. Eg 2023-04-06 1:00 for round 4
+  YEAR:MONTH:DAY:HOUR:MIN -- start datetime, in UTC. Eg 2023-04-06_1:00 for round 4
 """
-    if len(sys.argv) not in [2+1]:
+    if len(sys.argv) not in [2+2]:
         print(HELP)
         sys.exit(0)
 
     # extract inputs
     assert sys.argv[1] == "getnmses"
     CSV_DIR = sys.argv[2]
-    DATETIME_STR = sys.argv[2]
+    DATETIME_STR = sys.argv[3]
     
     print("pej getnmses: Begin")
     print(f"Args: CSV_DIR={CSV_DIR}, DATETIME={DATETIME_STR}")
@@ -182,9 +182,9 @@ Usage: pej getnmses CSV_DIR YEAR:MONTH:DAY:HOUR:MIN
     # == main work ==
 
     # specify target times
-    start_dt = datetime.strptime(DATETIME_STR, '%y-%m-%d %H:%M')
+    start_dt = datetime.datetime.strptime(DATETIME_STR, '%Y-%m-%d_%H:%M')
     start_dt = round_to_nearest_hour(start_dt) # so that times line up
-    start_dt_str = datetime.strftime('%y-%m-%d %H:%M')
+    start_dt_str = start_dt.strftime('%Y-%m-%d_%H:%M')
     print(f"start_dt = DATETIME rounded to nearest hour = {start_dt_str}")
     
     target_uts = target_12h_unixtimes(start_dt)
@@ -201,22 +201,43 @@ Usage: pej getnmses CSV_DIR YEAR:MONTH:DAY:HOUR:MIN
 
     pred_names = glob.glob(os.path.join(CSV_DIR, "predvals*.csv"))
     n = len(pred_names)
+    nft_addrs, nmses, bad_nft_addrs = [], [], []
     for i, pred_name in enumerate(pred_names):
+        nft_addr = pred_name.replace("outdir-round4/predvals_NFT_", "").replace(".csv","")
         print("="*60)
-        print(f"NFT #{i+1}/{n}: Begin")
+        print(f"NFT #{i+1}/{n}: Begin.")
         
         #get predicted ETH values
         print(f"pred_name: {pred_name}")
         pred_vals = load_list(pred_name)
         print(f"pred_vals: {pred_vals}")
+        if len(pred_vals) != len(cex_vals):
+            print("Error: wrong # predicted values. Skipping")
+            bad_nft_addrs.append(nft_addr)
+            continue
 
         #calc nmse, plot
         nmse = calc_nmse(cex_vals, pred_vals)
-        print(f"NMSE = {nmse:.8f}")
-        plot_prices(cex_vals, pred_vals)
-        
+        print(f"nft_addr={nft_addr}, NMSE = {nmse:.8f}")
+        #plot_prices(cex_vals, pred_vals)
+
+        nft_addrs.append(nft_addr)
+        nmses.append(nmse)
         print(f"NFT #{i+1}/{n}: Done")
 
+    print()
+    print("Summary:")
+    print(f"{len(bad_nft_addrs)} bad entries:")
+    print("nft_addr")
+    for addr in bad_nft_addrs:
+        print(addr)
+    print()
+    print(f"{len(nft_addrs)} good entries:")
+    print("nft_addr, nmse")
+    for nft_addr, nmse in zip(nft_addrs, nmses):
+        print(f"{nft_addr}, {nmse:.8f}")
+
+    print()
     print("pej getnmses: Done")
 
 
