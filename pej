@@ -18,7 +18,7 @@ from ocean_lib.models.data_nft import DataNFT
 from ocean_lib.ocean import crypto
 
 ## Set network. Change this one line if needed. *Supposed* to be "polygon-test"
-NETWORK_NAME = "polygon-main" # polygon-test (Mumbai), polygon-main, goerli, ..
+NETWORK_NAME = "polygon-test" # polygon-test (Mumbai), polygon-main, goerli, ..
 
 # Auto-calc chainid
 NAME_TO_CHAINID = {"polygon-test":80001, "polygon-main":137, "goerli":5}
@@ -124,7 +124,7 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {
     print(f"Loaded {n} NFT addrs.")
     
     for i, nft_addr in enumerate(nft_addrs):
-        print(f"NFT #{i+1}/{n}: Begin")
+        print(f"NFT #{i+1}/{n}: Begin. nft_addr={nft_addr}")
         pred_vals = nft_addr_to_pred_vals(nft_addr, ocean, alice) #main call
         file_name = os.path.join(CSV_DIR, "predvals_NFT_{nft_addr}.csv")
         save_list(pred_vals, file_name)
