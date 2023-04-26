@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 # pylint: disable=too-many-lines
-import datetime
-import functools
+from datetime import datetime as dt, timedelta
 import os
-import shutil
 import sys
 from typing import List
 import requests
@@ -28,11 +26,7 @@ CHAINID = NAME_TO_CHAINID[NETWORK_NAME]
 # ========================================================================
 HELP_MAIN = f"""predict-eth-judge
 
-Usage: pej getpreds|getnmses
-
-  Follow these steps:
-  1. pej getpreds CSV_DIR END_TIME - output N predvals_NFT_ADDRX.csv
-  2. pej getnmses CSV_DIR - from N predvals*.csv, output 1 nmses.csv
+Usage: pej getnmses START_DATE DEADLINE
 
 Hard-coded values: NETWORK_NAME={NETWORK_NAME}, CHAINID={CHAINID}
 Ennvars expected: REMOTE_TEST_PRIVATE_KEY1 (for judges' account) and POLYGONSCAN_API_KEY
@@ -56,12 +50,14 @@ def get_nft_addresses(end_dt):
         "apikey": os.getenv("POLYGONSCAN_API_KEY"),
     }
     result = requests.get(url, params=params).json()["result"]
-    cutoff_date = datetime.datetime.now() - datetime.timedelta(weeks=1)
+
+    # TODO: should this actually be the start date parameter?
+    a_week_ago = dt.now() - timedelta(weeks=1)
     addresses = []
 
     for result_item in result:
-        result_item_date = datetime.datetime.fromtimestamp(int(result_item["timeStamp"]))
-        if result_item_date < cutoff_date:
+        result_item_date = dt.fromtimestamp(int(result_item["timeStamp"]))
+        if result_item_date < a_week_ago:
             continue
         if result_item_date > end_dt:
             continue
@@ -69,57 +65,6 @@ def get_nft_addresses(end_dt):
         addresses.append(result_item["contractAddress"])
 
     return addresses
-
-# ========================================================================
-
-
-@enforce_types
-def do_getpreds():
-    ocean = create_ocean_instance(NETWORK_NAME)
-    alice_private_key = os.getenv("REMOTE_TEST_PRIVATE_KEY1")
-    assert alice_private_key is not None, "need envvar REMOTE_TEST_PRIVATE_KEY1"
-    alice = create_alice_wallet(ocean) # uses REMOTE_TEST_PRIVATE_KEY1
-
-    HELP = f"""from entries.csv, output predvals_NFT_ADDRX.csv
-
-Usage: pej getpreds CSV_DIR YEAR-MONTH-DAY_HOUR:MIN
-  CSV_DIR -- output dir
-  YEAR:MONTH:DAY:HOUR:MIN -- challenge ending datetime, in UTC. Eg 2023-04-06_1:00
-
-Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {alice.address}
-"""
-    if len(sys.argv) != 4:
-        print(HELP)
-        sys.exit(0)
-
-    # extract inputs
-    assert sys.argv[1] == "getpreds"
-    CSV_DIR = sys.argv[2]
-    DATETIME_STR = sys.argv[3]
-
-    end_dt = datetime.datetime.strptime(DATETIME_STR, '%Y-%m-%d_%H:%M')
-
-    print("pej getpreds: Begin")
-    print(f"Args: CSV_DIR={CSV_DIR}, DATETIME={DATETIME_STR}")
-
-    # check dir
-    if not os.path.exists(CSV_DIR):
-        print(f"\nDirectory {CSV_DIR} doesn't exist. Exiting.")
-        sys.exit(0)
-
-    #main work
-    nft_addrs = get_nft_addresses(end_dt)
-    n = len(nft_addrs)
-    print(f"Loaded {n} NFT addrs.")
-
-    for i, nft_addr in enumerate(nft_addrs):
-        print(f"NFT #{i+1}/{n}: Begin. nft_addr={nft_addr}")
-        pred_vals = nft_addr_to_pred_vals(nft_addr, ocean, alice) #main call
-        file_name = os.path.join(CSV_DIR, f"predvals_NFT_{nft_addr}.csv")
-        save_list(pred_vals, file_name)
-        print(f"Entry #{i+1}/{n}: done")
-
-    print("pej getpreds: Done")
 
 
 @enforce_types
@@ -142,33 +87,33 @@ def nft_addr_to_pred_vals(nft_addr:str, ocean, alice) -> List[float]:
 
 @enforce_types
 def do_getnmses():
-    HELP = f"""From N predvals*.csv, output 1 nmses.csv
+    ocean = create_ocean_instance(NETWORK_NAME)
+    alice_private_key = os.getenv("REMOTE_TEST_PRIVATE_KEY1")
+    assert alice_private_key is not None, "need envvar REMOTE_TEST_PRIVATE_KEY1"
+    alice = create_alice_wallet(ocean) # uses REMOTE_TEST_PRIVATE_KEY1
 
-Usage: pej getnmses CSV_DIR YEAR-MONTH-DAY_HOUR:MIN
-  CSV_DIR -- input & output dir
+    HELP = f"""Usage: pej getnmses YEAR-MONTH-DAY_HOUR:MIN YEAR-MONTH-DAY_HOUR:MIN
   YEAR:MONTH:DAY:HOUR:MIN -- start datetime, in UTC. Eg 2023-04-06_1:00 for round 4
+  YEAR:MONTH:DAY:HOUR:MIN -- challenge deadline, in UTC. Eg 2023-04-06_1:00
 """
-    if len(sys.argv) not in [2+2]:
+    if len(sys.argv) != 4:
         print(HELP)
         sys.exit(0)
 
     # extract inputs
     assert sys.argv[1] == "getnmses"
-    CSV_DIR = sys.argv[2]
-    DATETIME_STR = sys.argv[3]
+    DATETIME_STR = sys.argv[2]
+    ENDTIME_STR = sys.argv[3]
+
+    end_dt = dt.strptime(ENDTIME_STR, '%Y-%m-%d_%H:%M')
 
     print("pej getnmses: Begin")
-    print(f"Args: CSV_DIR={CSV_DIR}, DATETIME={DATETIME_STR}")
-
-    # check dir
-    if not os.path.exists(CSV_DIR):
-        print(f"\nDirectory {CSV_DIR} doesn't exist; nor do pred'ns. Exiting.")
-        sys.exit(0)
+    print(f"Args: START={DATETIME_STR}, END={ENDTIME_STR}")
 
     # == main work ==
 
     # specify target times
-    start_dt = datetime.datetime.strptime(DATETIME_STR, '%Y-%m-%d_%H:%M')
+    start_dt = dt.strptime(DATETIME_STR, '%Y-%m-%d_%H:%M')
     start_dt = round_to_nearest_hour(start_dt) # so that times line up
     start_dt_str = start_dt.strftime('%Y-%m-%d_%H:%M')
     print(f"start_dt = DATETIME rounded to nearest hour = {start_dt_str}")
@@ -185,17 +130,17 @@ Usage: pej getnmses CSV_DIR YEAR-MONTH-DAY_HOUR:MIN
     print(f"cex ETH price is ${cex_vals[0]} at start_dt of {start_dt}")
     print(f"cex_vals: {cex_vals}")
 
-    pred_names = glob.glob(os.path.join(CSV_DIR, "predvals*.csv"))
-    n = len(pred_names)
-    nft_addrs, nmses, bad_nft_addrs = [], [], []
-    for i, pred_name in enumerate(pred_names):
-        nft_addr = pred_name.replace("outdir-round4/predvals_NFT_", "").replace(".csv","")
+    entries = get_nft_addresses(end_dt)
+    n = len(entries)
+    nmses, bad_nft_addrs = {}, []
+    for i, entry in enumerate(entries):
+        nft_addr = entry
         print("="*60)
         print(f"NFT #{i+1}/{n}: Begin.")
 
         #get predicted ETH values
-        print(f"pred_name: {pred_name}")
-        pred_vals = load_list(pred_name)
+        print(f"nft_addr: {nft_addr}")
+        pred_vals = nft_addr_to_pred_vals(nft_addr, ocean, alice) #main call
         print(f"pred_vals: {pred_vals}")
         if len(pred_vals) != len(cex_vals):
             print("Error: wrong # predicted values. Skipping")
@@ -207,8 +152,7 @@ Usage: pej getnmses CSV_DIR YEAR-MONTH-DAY_HOUR:MIN
         print(f"nft_addr={nft_addr}, NMSE = {nmse:.8f}")
         #plot_prices(cex_vals, pred_vals)
 
-        nft_addrs.append(nft_addr)
-        nmses.append(nmse)
+        nmses[nft_addr] = nmse
         print(f"NFT #{i+1}/{n}: Done")
 
     print()
@@ -218,28 +162,14 @@ Usage: pej getnmses CSV_DIR YEAR-MONTH-DAY_HOUR:MIN
     for addr in bad_nft_addrs:
         print(addr)
     print()
-    print(f"{len(nft_addrs)} good entries:")
-    print("nft_addr, nmse")
-    for nft_addr, nmse in zip(nft_addrs, nmses):
-        print(f"{nft_addr}, {nmse:.8f}")
+    print(f"{len(nmses)} good entries:")
+    print(nmses)
+    ranking = {k: v for k, v in sorted(nmses.items(), key=lambda item: item[1])}
+    print(f"after ranking: {ranking}")
+    print(f"top 3: {list(ranking.keys())[:3]}")
 
     print()
     print("pej getnmses: Done")
-
-
-# ========================================================================
-# file utilities
-
-def _exitIfFileExists(filename: str):
-    if os.path.exists(filename):
-        print(f"\nFile {filename} exists. Exiting.")
-        sys.exit(0)
-
-
-def _createDirIfNeeded(dir_: str):
-    if not os.path.exists(dir_):
-        print(f"Directory {dir_} did not exist, so created it")
-        os.mkdir(dir_)
 
 
 # ========================================================================
@@ -250,8 +180,6 @@ def do_main():
         do_help()
 
     # main actions
-    elif sys.argv[1] == "getpreds":
-        do_getpreds()
     elif sys.argv[1] == "getnmses":
         do_getnmses()
 
