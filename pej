@@ -6,6 +6,7 @@ import os
 import shutil
 import sys
 from typing import List
+import requests
 
 import brownie
 import ccxt
@@ -27,15 +28,14 @@ CHAINID = NAME_TO_CHAINID[NETWORK_NAME]
 # ========================================================================
 HELP_MAIN = f"""predict-eth-judge
 
-Usage: pej getentries|getpreds|getnmses
+Usage: pej getpreds|getnmses
 
   Follow these steps:
-  1. pej getentries - from chain, output 1 entries.csv
-  2. pej getpreds CSV_DIR - from 1 entries.csv, output N predvals_NFT_ADDRX.csv
-  3. pej getnmses CSV_DIR - from N predvals*.csv, output 1 nmses.csv
+  1. pej getpreds CSV_DIR - output N predvals_NFT_ADDRX.csv
+  2. pej getnmses CSV_DIR - from N predvals*.csv, output 1 nmses.csv
 
 Hard-coded values: NETWORK_NAME={NETWORK_NAME}, CHAINID={CHAINID}
-Ennvar expected: REMOTE_TEST_PRIVATE_KEY1 (for judges' account)
+Ennvars expected: REMOTE_TEST_PRIVATE_KEY1 (for judges' account) and POLYGONSCAN_API_KEY
 """
 
 
@@ -47,41 +47,26 @@ def do_help():
 
 # ========================================================================
 @enforce_types
-def do_getentries():
-    HELP = f"""From chain, output entries.csv, which holds data NFT addrs
+def get_nft_addresses():
+    url = "https://api-testnet.polygonscan.com/api"
+    params = {
+        "module": "account",
+        "action": "tokennfttx",
+        "address": "0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E",
+        "apikey": os.getenv("POLYGONSCAN_API_KEY"),
+    }
+    result = requests.get(url, params=params).json()["result"]
+    cutoff_date = datetime.datetime.now() - datetime.timedelta(weeks=1)
+    addresses = []
+    # TODO: filter out what is not "on time"
+    for result_item in result:
+        result_item_date = datetime.datetime.fromtimestamp(int(result_item["timeStamp"]))
+        if result_item_date < cutoff_date:
+            continue
 
-This is currently *manual*. Here are the steps to follow.
+        addresses.append(result_item["contractAddress"])
 
-0. In bash:
-  export CSV_DIR=/home/trentmc/outdir-round4/
-  mkdir $CSV_DIR
-  cd $CSV_DIR
-
-1. From browser, export txs of ER721 txs shared to judges 
-  1.1. Go to https://mumbai.polygonscan.com/address/0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E#tokentxnsErc721
-  1.2  Cick button to export csv
-
-2. Create a filtered csv, via libreoffice or other
-  2.1 Load the new csv
-  2.2 Filter the csv to:
-   -remove all but rows that are recent (the previous week), and on time
-   -remove all columns but the one with contract address (= nft address)
-   -remove the header row
-  2.3 Then, "save as" with filename ~/export.csv
-
-3. Create an "entries.csv" file that's friendly for pej. 
-  3.1 In bash: 
-    cat ~/export.csv |tr '\n' ', ' | sed -e 's/,/\",\"/g' > entries.csv
-  3.2 Open entries.csv in emacs or other. Clean up its beginning and end, so it looks like: 
-    ["0x1234", "0x2349", ..., "0xabc123"]
-
-*Future* usage may be something like:
-Usage: pej getentries ST FIN CSV_DIR
-  ST -- first block # to calc on | YYYY-MM-DD_HH:MM
-  FIN -- last block # to calc on | YYYY-MM-DD_HH:MM | latest
-  CSV_DIR -- output dir for entries.csv
-"""
-    print(HELP)
+    return addresses
 
 # ========================================================================
 
@@ -92,7 +77,7 @@ def do_getpreds():
     alice_private_key = os.getenv("REMOTE_TEST_PRIVATE_KEY1")
     assert alice_private_key is not None, "need envvar REMOTE_TEST_PRIVATE_KEY1"
     alice = create_alice_wallet(ocean) # uses REMOTE_TEST_PRIVATE_KEY1
-    
+
     HELP = f"""from entries.csv, output predvals_NFT_ADDRX.csv
 
 Usage: pej getpreds CSV_DIR
@@ -107,7 +92,7 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {
     # extract inputs
     assert sys.argv[1] == "getpreds"
     CSV_DIR = sys.argv[2]
-    
+
     print("pej getpreds: Begin")
     print(f"Args: CSV_DIR={CSV_DIR}")
 
@@ -115,17 +100,12 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {
     if not os.path.exists(CSV_DIR):
         print(f"\nDirectory {CSV_DIR} doesn't exist. Exiting.")
         sys.exit(0)
-	
-    entries_file_name = _entriesCsvFilename(CSV_DIR)
-    if not os.path.exists(entries_file_name):
-        print(f"\n File {entries_file_name} doesn't exist. Exiting.")
-        sys.exit(0)
 
-    #main work    
-    nft_addrs = load_list(entries_file_name)
+    #main work
+    nft_addrs = get_nft_addresses()
     n = len(nft_addrs)
     print(f"Loaded {n} NFT addrs.")
-    
+
     for i, nft_addr in enumerate(nft_addrs):
         print(f"NFT #{i+1}/{n}: Begin. nft_addr={nft_addr}")
         pred_vals = nft_addr_to_pred_vals(nft_addr, ocean, alice) #main call
@@ -170,7 +150,7 @@ Usage: pej getnmses CSV_DIR YEAR-MONTH-DAY_HOUR:MIN
     assert sys.argv[1] == "getnmses"
     CSV_DIR = sys.argv[2]
     DATETIME_STR = sys.argv[3]
-    
+
     print("pej getnmses: Begin")
     print(f"Args: CSV_DIR={CSV_DIR}, DATETIME={DATETIME_STR}")
 
@@ -178,7 +158,7 @@ Usage: pej getnmses CSV_DIR YEAR-MONTH-DAY_HOUR:MIN
     if not os.path.exists(CSV_DIR):
         print(f"\nDirectory {CSV_DIR} doesn't exist; nor do pred'ns. Exiting.")
         sys.exit(0)
-    
+
     # == main work ==
 
     # specify target times
@@ -186,7 +166,7 @@ Usage: pej getnmses CSV_DIR YEAR-MONTH-DAY_HOUR:MIN
     start_dt = round_to_nearest_hour(start_dt) # so that times line up
     start_dt_str = start_dt.strftime('%Y-%m-%d_%H:%M')
     print(f"start_dt = DATETIME rounded to nearest hour = {start_dt_str}")
-    
+
     target_uts = target_12h_unixtimes(start_dt)
     print_datetime_info("target times", target_uts)
 
@@ -206,7 +186,7 @@ Usage: pej getnmses CSV_DIR YEAR-MONTH-DAY_HOUR:MIN
         nft_addr = pred_name.replace("outdir-round4/predvals_NFT_", "").replace(".csv","")
         print("="*60)
         print(f"NFT #{i+1}/{n}: Begin.")
-        
+
         #get predicted ETH values
         print(f"pred_name: {pred_name}")
         pred_vals = load_list(pred_name)
@@ -256,10 +236,6 @@ def _createDirIfNeeded(dir_: str):
         os.mkdir(dir_)
 
 
-def _entriesCsvFilename(CSV_DIR) -> str:
-    return os.path.join(CSV_DIR, "entries.csv")
-
-
 # ========================================================================
 # main
 @enforce_types
@@ -268,13 +244,11 @@ def do_main():
         do_help()
 
     # main actions
-    elif sys.argv[1] == "getentries":
-        do_getentries()
     elif sys.argv[1] == "getpreds":
         do_getpreds()
     elif sys.argv[1] == "getnmses":
         do_getnmses()
-    
+
     else:
         do_help()
 
