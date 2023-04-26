@@ -37,7 +37,7 @@ export POLYGONSCAN_API_KEY=<api key>
 Usage: pej getpreds|getnmses
 
   Follow these steps:
-  1. pej getpreds CSV_DIR - output N predvals_NFT_ADDRX.csv
+  1. pej getpreds CSV_DIR END_TIME - output N predvals_NFT_ADDRX.csv
   2. pej getnmses CSV_DIR - from N predvals*.csv, output 1 nmses.csv
 
 Hard-coded values: NETWORK_NAME={NETWORK_NAME}, CHAINID={CHAINID}

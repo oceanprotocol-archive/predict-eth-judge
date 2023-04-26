@@ -31,7 +31,7 @@ HELP_MAIN = f"""predict-eth-judge
 Usage: pej getpreds|getnmses
 
   Follow these steps:
-  1. pej getpreds CSV_DIR - output N predvals_NFT_ADDRX.csv
+  1. pej getpreds CSV_DIR END_TIME - output N predvals_NFT_ADDRX.csv
   2. pej getnmses CSV_DIR - from N predvals*.csv, output 1 nmses.csv
 
 Hard-coded values: NETWORK_NAME={NETWORK_NAME}, CHAINID={CHAINID}
@@ -47,7 +47,7 @@ def do_help():
 
 # ========================================================================
 @enforce_types
-def get_nft_addresses():
+def get_nft_addresses(end_dt):
     url = "https://api-testnet.polygonscan.com/api"
     params = {
         "module": "account",
@@ -58,10 +58,12 @@ def get_nft_addresses():
     result = requests.get(url, params=params).json()["result"]
     cutoff_date = datetime.datetime.now() - datetime.timedelta(weeks=1)
     addresses = []
-    # TODO: filter out what is not "on time"
+
     for result_item in result:
         result_item_date = datetime.datetime.fromtimestamp(int(result_item["timeStamp"]))
         if result_item_date < cutoff_date:
+            continue
+        if result_item_date > end_dt:
             continue
 
         addresses.append(result_item["contractAddress"])
@@ -80,21 +82,25 @@ def do_getpreds():
 
     HELP = f"""from entries.csv, output predvals_NFT_ADDRX.csv
 
-Usage: pej getpreds CSV_DIR
-    CSV_DIR -- input & output dir
+Usage: pej getpreds CSV_DIR YEAR-MONTH-DAY_HOUR:MIN
+  CSV_DIR -- output dir
+  YEAR:MONTH:DAY:HOUR:MIN -- challenge ending datetime, in UTC. Eg 2023-04-06_1:00
 
 Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {alice.address}
 """
-    if len(sys.argv) not in [2 + 1]:
+    if len(sys.argv) != 4:
         print(HELP)
         sys.exit(0)
 
     # extract inputs
     assert sys.argv[1] == "getpreds"
     CSV_DIR = sys.argv[2]
+    DATETIME_STR = sys.argv[3]
+
+    end_dt = datetime.datetime.strptime(DATETIME_STR, '%Y-%m-%d_%H:%M')
 
     print("pej getpreds: Begin")
-    print(f"Args: CSV_DIR={CSV_DIR}")
+    print(f"Args: CSV_DIR={CSV_DIR}, DATETIME={DATETIME_STR}")
 
     # check dir
     if not os.path.exists(CSV_DIR):
@@ -102,7 +108,7 @@ Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {
         sys.exit(0)
 
     #main work
-    nft_addrs = get_nft_addresses()
+    nft_addrs = get_nft_addresses(end_dt)
     n = len(nft_addrs)
     print(f"Loaded {n} NFT addrs.")
 
