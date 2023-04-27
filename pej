@@ -57,7 +57,6 @@ def get_nft_addresses(end_dt):
     }
     result = requests.get(url, params=params).json()["result"]
 
-    # TODO: should this actually be the start date parameter?
     a_week_ago = dt.now() - timedelta(weeks=1)
     addresses = []
 
@@ -142,7 +141,6 @@ def print_results(nmses, bad_nft_addrs):
     print("Summary:")
     print("-------------")
 
-    bad_nft_addrs = ["a", "b"]
     print(f"{len(bad_nft_addrs)} bad entries: ")
     for bad_addr in bad_nft_addrs:
         print(f"BAD: {bad_addr}")
