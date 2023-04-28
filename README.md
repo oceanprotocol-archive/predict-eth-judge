@@ -34,7 +34,7 @@ export POLYGONSCAN_API_KEY=<api key>
 # CLI
 
 ```text
-Usage: pej getnmses START_DATE DEADLINE
+Usage: pej DEADLINE
 
 Hard-coded values: NETWORK_NAME={NETWORK_NAME}, CHAINID={CHAINID}
 Ennvars expected: REMOTE_TEST_PRIVATE_KEY1 (for judges' account) and POLYGONSCAN_API_KEY

@@ -31,11 +31,10 @@ CHAINID = NAME_TO_CHAINID[NETWORK_NAME]
 # Usage instructions
 HELP_MAIN = f"""predict-eth-judge
 
-Usage: pej getnmses START_DATE DEADLINE
+Usage: pej DEADLINE
 
-START_DATE and DEADLINE expected in the format YEAR-MONTH-DAY_HOUR:MIN in UTC.
+DEADLINE expected in the format YEAR-MONTH-DAY_HOUR:MIN in UTC.
    Eg 2023-04-06_1:00
-START_DATE refers to the start of the data retrieval period.
 DEADLINE refers to the end of the challenge itself, to limit entry retrieval.
 
 Hard-coded values: NETWORK_NAME={NETWORK_NAME}, CHAINID={CHAINID}
@@ -57,13 +56,13 @@ def get_nft_addresses(end_dt):
     }
     result = requests.get(url, params=params).json()["result"]
 
-    a_week_ago = dt.now() - timedelta(weeks=1)
+    a_week_before_deadline = end_dt.now() - timedelta(weeks=1)
     addresses = []
 
     for result_item in result:
         result_item_date = dt.fromtimestamp(int(result_item["timeStamp"]))
 
-        if result_item_date < a_week_ago:
+        if result_item_date < a_week_before_deadline:
             continue
         if result_item_date > end_dt:
             continue
@@ -108,22 +107,20 @@ def get_cex_vals(start_dt):
 
 
 def parse_arguments(arguments):
-    if len(arguments) != 4:
+    if len(arguments) != 2:
         print(HELP_MAIN)
         sys.exit(0)
 
     # extract inputs
-    assert arguments[1] == "getnmses"
-    DATETIME_STR = arguments[2]
-    ENDTIME_STR = arguments[3]
+    ENDTIME_STR = arguments[1]
 
     end_dt = dt.strptime(ENDTIME_STR, '%Y-%m-%d_%H:%M')
 
-    print("pej getnmses: Begin")
-    print(f"Args: START={DATETIME_STR}, END={ENDTIME_STR}")
+    print("pej: Begin")
+    print(f"Args: DEADLINE={ENDTIME_STR}")
 
     # specify target times
-    start_dt = dt.strptime(DATETIME_STR, '%Y-%m-%d_%H:%M')
+    start_dt = end_dt + timedelta(minutes=6)
     start_dt = round_to_nearest_hour(start_dt)  # so that times line up
 
     start_dt_str = start_dt.strftime('%Y-%m-%d_%H:%M')
@@ -160,7 +157,7 @@ def print_results(nmses, bad_nft_addrs):
     print("-------------")
     print("\n".join(list(ranking.keys())[:3]))
 
-    print("\npej getnmses: Done")
+    print("\npej: Done")
 
 
 @enforce_types
@@ -212,15 +209,11 @@ def do_help():
 # main
 @enforce_types
 def do_main():
-    if len(sys.argv) == 1 or sys.argv[1] == "help":
+    if len(sys.argv) != 2 or sys.argv[1] == "help":
         do_help()
-
-    # main actions
-    elif sys.argv[1] == "getnmses":
-        do_getnmses()
 
     else:
-        do_help()
+        do_getnmses()
 
 
 if __name__ == "__main__":
