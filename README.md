@@ -26,20 +26,16 @@ pip install ocean-lib predict-eth ccxt enforce_typing numpy matplotlib
 #add pwd to bash path
 export PATH=$PATH:.
 
-#set judges private key (needed for "getpreds")
-export REMOTE_TEST_PRIVATE_KEY1=<judges key> 
+#set judges private key and Polygon Scan API Key
+export REMOTE_TEST_PRIVATE_KEY1=<judges key>
+export POLYGONSCAN_API_KEY=<api key>
 ```
 
 # CLI
 
 ```text
-Usage: pej getentries|getpreds|getnmses
-
-  Follow these steps:
-  1. pej getentries - from chain, output 1 entries.csv
-  2. pej getpreds CSV_DIR - from 1 entries.csv, output N predvals_NFT_ADDRX.csv
-  3. pej getnmses CSV_DIR - from N predvals*.csv, output 1 nmses.csv
+Usage: pej DEADLINE
 
 Hard-coded values: NETWORK_NAME={NETWORK_NAME}, CHAINID={CHAINID}
-Ennvar expected: REMOTE_TEST_PRIVATE_KEY1 (for judges' account)
+Ennvars expected: REMOTE_TEST_PRIVATE_KEY1 (for judges' account) and POLYGONSCAN_API_KEY
 ```

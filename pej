@@ -1,42 +1,202 @@
 #!/usr/bin/env python
 # pylint: disable=too-many-lines
-import datetime
-import functools
+from datetime import datetime as dt, timedelta
 import os
-import shutil
 import sys
 from typing import List
+import requests
 
-import brownie
 import ccxt
 from enforce_typing import enforce_types
-import glob
-import hashlib
 
-from predict_eth.helpers import *
+from predict_eth.helpers import (
+    calc_nmse,
+    create_alice_wallet,
+    create_ocean_instance,
+    filter_to_target_uts,
+    print_datetime_info,
+    round_to_nearest_hour,
+    target_12h_unixtimes
+)
 from ocean_lib.models.data_nft import DataNFT
 from ocean_lib.ocean import crypto
 
-## Set network. Change this one line if needed. *Supposed* to be "polygon-test"
-NETWORK_NAME = "polygon-test" # polygon-test (Mumbai), polygon-main, goerli, ..
+# Set network. Change this one line if needed. *Supposed* to be "polygon-test"
+NETWORK_NAME = "polygon-test"  # polygon-test (Mumbai), polygon-main, goerli...
 
 # Auto-calc chainid
-NAME_TO_CHAINID = {"polygon-test":80001, "polygon-main":137, "goerli":5}
+NAME_TO_CHAINID = {"polygon-test": 80001, "polygon-main": 137, "goerli": 5}
 CHAINID = NAME_TO_CHAINID[NETWORK_NAME]
 
-# ========================================================================
+# Usage instructions
 HELP_MAIN = f"""predict-eth-judge
 
-Usage: pej getentries|getpreds|getnmses
+Usage: pej DEADLINE
 
-  Follow these steps:
-  1. pej getentries - from chain, output 1 entries.csv
-  2. pej getpreds CSV_DIR - from 1 entries.csv, output N predvals_NFT_ADDRX.csv
-  3. pej getnmses CSV_DIR - from N predvals*.csv, output 1 nmses.csv
+DEADLINE expected in the format YEAR-MONTH-DAY_HOUR:MIN in UTC.
+   Eg 2023-04-06_1:00
+DEADLINE refers to the end of the challenge itself, to limit entry retrieval.
 
 Hard-coded values: NETWORK_NAME={NETWORK_NAME}, CHAINID={CHAINID}
-Ennvar expected: REMOTE_TEST_PRIVATE_KEY1 (for judges' account)
+Ennvars expected:
+   REMOTE_TEST_PRIVATE_KEY1 (for judges' account)
+   POLYGONSCAN_API_KEY
+
 """
+
+
+@enforce_types
+def get_nft_addresses(end_dt):
+    url = "https://api-testnet.polygonscan.com/api"
+    params = {
+        "module": "account",
+        "action": "tokennfttx",
+        "address": "0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E",
+        "apikey": os.getenv("POLYGONSCAN_API_KEY"),
+    }
+    result = requests.get(url, params=params).json()["result"]
+
+    a_week_before_deadline = end_dt.now() - timedelta(weeks=1)
+    addresses = []
+
+    for result_item in result:
+        result_item_date = dt.fromtimestamp(int(result_item["timeStamp"]))
+
+        if result_item_date < a_week_before_deadline:
+            continue
+        if result_item_date > end_dt:
+            continue
+
+        addresses.append(result_item["contractAddress"])
+
+    return addresses
+
+
+@enforce_types
+def nft_addr_to_pred_vals(nft_addr: str, ocean, alice) -> List[float]:
+    # adapted from "What judges will do" in
+    #  https://github.com/oceanprotocol/predict-eth/blob/main/challenges/main4.md
+
+    # get predicted ETH values
+    nft = DataNFT(ocean.config_dict, nft_addr)
+    pred_vals_str_enc = nft.get_data("predictions")
+    try:
+        pred_vals_str = crypto.asym_decrypt(pred_vals_str_enc, alice.private_key)
+        pred_vals = [float(s) for s in pred_vals_str[1:-1].split(',')]
+    except:
+        # import pdb; pdb.set_trace()
+        return []
+
+    return pred_vals
+
+
+def get_cex_vals(start_dt):
+    target_uts = target_12h_unixtimes(start_dt)
+    print_datetime_info("target times", target_uts)
+
+    # get actual ETH values
+    cex_x = ccxt.binance().fetch_ohlcv('ETH/USDT', '1h')
+    allcex_uts = [xi[0]/1000 for xi in cex_x]
+    allcex_vals = [xi[4] for xi in cex_x]
+    # print_datetime_info("CEX data info", allcex_uts)
+    cex_vals = filter_to_target_uts(target_uts, allcex_uts, allcex_vals)
+    print(f"cex ETH price is ${cex_vals[0]} at start_dt of {start_dt}")
+    print(f"cex_vals: {cex_vals}")
+
+    return cex_vals
+
+
+def parse_arguments(arguments):
+    if len(arguments) != 2:
+        print(HELP_MAIN)
+        sys.exit(0)
+
+    # extract inputs
+    ENDTIME_STR = arguments[1]
+
+    end_dt = dt.strptime(ENDTIME_STR, '%Y-%m-%d_%H:%M')
+
+    print("pej: Begin")
+    print(f"Args: DEADLINE={ENDTIME_STR}")
+
+    # specify target times
+    start_dt = end_dt + timedelta(minutes=6)
+    start_dt = round_to_nearest_hour(start_dt)  # so that times line up
+
+    start_dt_str = start_dt.strftime('%Y-%m-%d_%H:%M')
+    print(f"start_dt = DATETIME rounded to nearest hour = {start_dt_str}")
+
+    return start_dt, end_dt
+
+
+def print_addresss_nmse(nmses):
+    for address, nmse in nmses.items():
+        print(f"Address: {address}, NMSE: {nmse}")
+
+
+def print_results(nmses, bad_nft_addrs):
+    print("\n-------------")
+    print("Summary:")
+    print("-------------")
+
+    print(f"{len(bad_nft_addrs)} bad entries: ")
+    for bad_addr in bad_nft_addrs:
+        print(f"BAD: {bad_addr}")
+
+    print(f"\n{len(nmses)} good entries:")
+    print_addresss_nmse(nmses)
+
+    ranking = {
+        k: v for k, v in sorted(nmses.items(), key=lambda item: item[1])
+    }
+    print("\nafter ranking:")
+    print("-------------")
+    print_addresss_nmse(ranking)
+
+    print("\ntop 3:")
+    print("-------------")
+    print("\n".join(list(ranking.keys())[:3]))
+
+    print("\npej: Done")
+
+
+@enforce_types
+def do_getnmses():
+    ocean = create_ocean_instance(NETWORK_NAME)
+    alice_private_key = os.getenv("REMOTE_TEST_PRIVATE_KEY1")
+    assert alice_private_key, "need envvar REMOTE_TEST_PRIVATE_KEY1"
+    alice = create_alice_wallet(ocean)  # uses REMOTE_TEST_PRIVATE_KEY1
+
+    start_dt, end_dt = parse_arguments(sys.argv)
+    cex_vals = get_cex_vals(start_dt)
+
+    entries = get_nft_addresses(end_dt)
+    n = len(entries)
+    nmses, bad_nft_addrs = {}, []
+
+    for i, entry in enumerate(entries):
+        nft_addr = entry
+        print("="*60)
+        print(f"NFT #{i+1}/{n}: Begin.")
+
+        # get predicted ETH values
+        print(f"nft_addr: {nft_addr}")
+        pred_vals = nft_addr_to_pred_vals(nft_addr, ocean, alice)  # main call
+        print(f"pred_vals: {pred_vals}")
+        if len(pred_vals) != len(cex_vals):
+            print("Error: wrong # predicted values. Skipping")
+            bad_nft_addrs.append(nft_addr)
+            continue
+
+        # calc nmse, plot
+        nmse = calc_nmse(cex_vals, pred_vals)
+        print(f"nft_addr={nft_addr}, NMSE = {nmse:.8f}")
+        # plot_prices(cex_vals, pred_vals)
+
+        nmses[nft_addr] = nmse
+        print(f"NFT #{i+1}/{n}: Done")
+
+    return nmses, bad_nft_addrs
 
 
 @enforce_types
@@ -46,237 +206,15 @@ def do_help():
 
 
 # ========================================================================
-@enforce_types
-def do_getentries():
-    HELP = f"""From chain, output entries.csv, which holds data NFT addrs
-
-This is currently *manual*. Here are the steps to follow.
-
-0. In bash:
-  export CSV_DIR=/home/trentmc/outdir-round4/
-  mkdir $CSV_DIR
-  cd $CSV_DIR
-
-1. From browser, export txs of ER721 txs shared to judges 
-  1.1. Go to https://mumbai.polygonscan.com/address/0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E#tokentxnsErc721
-  1.2  Cick button to export csv
-
-2. Create a filtered csv, via libreoffice or other
-  2.1 Load the new csv
-  2.2 Filter the csv to:
-   -remove all but rows that are recent (the previous week), and on time
-   -remove all columns but the one with contract address (= nft address)
-   -remove the header row
-  2.3 Then, "save as" with filename ~/export.csv
-
-3. Create an "entries.csv" file that's friendly for pej. 
-  3.1 In bash: 
-    cat ~/export.csv |tr '\n' ', ' | sed -e 's/,/\",\"/g' > entries.csv
-  3.2 Open entries.csv in emacs or other. Clean up its beginning and end, so it looks like: 
-    ["0x1234", "0x2349", ..., "0xabc123"]
-
-*Future* usage may be something like:
-Usage: pej getentries ST FIN CSV_DIR
-  ST -- first block # to calc on | YYYY-MM-DD_HH:MM
-  FIN -- last block # to calc on | YYYY-MM-DD_HH:MM | latest
-  CSV_DIR -- output dir for entries.csv
-"""
-    print(HELP)
-
-# ========================================================================
-
-
-@enforce_types
-def do_getpreds():
-    ocean = create_ocean_instance(NETWORK_NAME)
-    alice_private_key = os.getenv("REMOTE_TEST_PRIVATE_KEY1")
-    assert alice_private_key is not None, "need envvar REMOTE_TEST_PRIVATE_KEY1"
-    alice = create_alice_wallet(ocean) # uses REMOTE_TEST_PRIVATE_KEY1
-    
-    HELP = f"""from entries.csv, output predvals_NFT_ADDRX.csv
-
-Usage: pej getpreds CSV_DIR
-    CSV_DIR -- input & output dir
-
-Transactions are signed with envvar `REMOTE_TEST_PRIVATE_KEY1`, having address {alice.address}
-"""
-    if len(sys.argv) not in [2 + 1]:
-        print(HELP)
-        sys.exit(0)
-
-    # extract inputs
-    assert sys.argv[1] == "getpreds"
-    CSV_DIR = sys.argv[2]
-    
-    print("pej getpreds: Begin")
-    print(f"Args: CSV_DIR={CSV_DIR}")
-
-    # check dir
-    if not os.path.exists(CSV_DIR):
-        print(f"\nDirectory {CSV_DIR} doesn't exist. Exiting.")
-        sys.exit(0)
-	
-    entries_file_name = _entriesCsvFilename(CSV_DIR)
-    if not os.path.exists(entries_file_name):
-        print(f"\n File {entries_file_name} doesn't exist. Exiting.")
-        sys.exit(0)
-
-    #main work    
-    nft_addrs = load_list(entries_file_name)
-    n = len(nft_addrs)
-    print(f"Loaded {n} NFT addrs.")
-    
-    for i, nft_addr in enumerate(nft_addrs):
-        print(f"NFT #{i+1}/{n}: Begin. nft_addr={nft_addr}")
-        pred_vals = nft_addr_to_pred_vals(nft_addr, ocean, alice) #main call
-        file_name = os.path.join(CSV_DIR, f"predvals_NFT_{nft_addr}.csv")
-        save_list(pred_vals, file_name)
-        print(f"Entry #{i+1}/{n}: done")
-
-    print("pej getpreds: Done")
-
-
-@enforce_types
-def nft_addr_to_pred_vals(nft_addr:str, ocean, alice) -> List[float]:
-    # adapted from "What judges will do" in
-    #  https://github.com/oceanprotocol/predict-eth/blob/main/challenges/main4.md
-
-    # get predicted ETH values
-    nft = DataNFT(ocean.config_dict, nft_addr)
-    pred_vals_str_enc = nft.get_data("predictions")
-    pred_vals_str = crypto.asym_decrypt(pred_vals_str_enc, alice.private_key)
-    try:
-        pred_vals = [float(s) for s in pred_vals_str[1:-1].split(',')]
-    except:
-        import pdb; pdb.set_trace()
-
-    return pred_vals
-
-# ========================================================================
-
-@enforce_types
-def do_getnmses():
-    HELP = f"""From N predvals*.csv, output 1 nmses.csv
-
-Usage: pej getnmses CSV_DIR YEAR-MONTH-DAY_HOUR:MIN
-  CSV_DIR -- input & output dir
-  YEAR:MONTH:DAY:HOUR:MIN -- start datetime, in UTC. Eg 2023-04-06_1:00 for round 4
-"""
-    if len(sys.argv) not in [2+2]:
-        print(HELP)
-        sys.exit(0)
-
-    # extract inputs
-    assert sys.argv[1] == "getnmses"
-    CSV_DIR = sys.argv[2]
-    DATETIME_STR = sys.argv[3]
-    
-    print("pej getnmses: Begin")
-    print(f"Args: CSV_DIR={CSV_DIR}, DATETIME={DATETIME_STR}")
-
-    # check dir
-    if not os.path.exists(CSV_DIR):
-        print(f"\nDirectory {CSV_DIR} doesn't exist; nor do pred'ns. Exiting.")
-        sys.exit(0)
-    
-    # == main work ==
-
-    # specify target times
-    start_dt = datetime.datetime.strptime(DATETIME_STR, '%Y-%m-%d_%H:%M')
-    start_dt = round_to_nearest_hour(start_dt) # so that times line up
-    start_dt_str = start_dt.strftime('%Y-%m-%d_%H:%M')
-    print(f"start_dt = DATETIME rounded to nearest hour = {start_dt_str}")
-    
-    target_uts = target_12h_unixtimes(start_dt)
-    print_datetime_info("target times", target_uts)
-
-    #get actual ETH values
-    cex_x = ccxt.binance().fetch_ohlcv('ETH/USDT', '1h')
-    allcex_uts = [xi[0]/1000 for xi in cex_x]
-    allcex_vals = [xi[4] for xi in cex_x]
-    #print_datetime_info("CEX data info", allcex_uts)
-    cex_vals = filter_to_target_uts(target_uts, allcex_uts, allcex_vals)
-    print(f"cex ETH price is ${cex_vals[0]} at start_dt of {start_dt}")
-    print(f"cex_vals: {cex_vals}")
-
-    pred_names = glob.glob(os.path.join(CSV_DIR, "predvals*.csv"))
-    n = len(pred_names)
-    nft_addrs, nmses, bad_nft_addrs = [], [], []
-    for i, pred_name in enumerate(pred_names):
-        nft_addr = pred_name.replace("outdir-round4/predvals_NFT_", "").replace(".csv","")
-        print("="*60)
-        print(f"NFT #{i+1}/{n}: Begin.")
-        
-        #get predicted ETH values
-        print(f"pred_name: {pred_name}")
-        pred_vals = load_list(pred_name)
-        print(f"pred_vals: {pred_vals}")
-        if len(pred_vals) != len(cex_vals):
-            print("Error: wrong # predicted values. Skipping")
-            bad_nft_addrs.append(nft_addr)
-            continue
-
-        #calc nmse, plot
-        nmse = calc_nmse(cex_vals, pred_vals)
-        print(f"nft_addr={nft_addr}, NMSE = {nmse:.8f}")
-        #plot_prices(cex_vals, pred_vals)
-
-        nft_addrs.append(nft_addr)
-        nmses.append(nmse)
-        print(f"NFT #{i+1}/{n}: Done")
-
-    print()
-    print("Summary:")
-    print(f"{len(bad_nft_addrs)} bad entries:")
-    print("nft_addr")
-    for addr in bad_nft_addrs:
-        print(addr)
-    print()
-    print(f"{len(nft_addrs)} good entries:")
-    print("nft_addr, nmse")
-    for nft_addr, nmse in zip(nft_addrs, nmses):
-        print(f"{nft_addr}, {nmse:.8f}")
-
-    print()
-    print("pej getnmses: Done")
-
-
-# ========================================================================
-# file utilities
-
-def _exitIfFileExists(filename: str):
-    if os.path.exists(filename):
-        print(f"\nFile {filename} exists. Exiting.")
-        sys.exit(0)
-
-
-def _createDirIfNeeded(dir_: str):
-    if not os.path.exists(dir_):
-        print(f"Directory {dir_} did not exist, so created it")
-        os.mkdir(dir_)
-
-
-def _entriesCsvFilename(CSV_DIR) -> str:
-    return os.path.join(CSV_DIR, "entries.csv")
-
-
-# ========================================================================
 # main
 @enforce_types
 def do_main():
-    if len(sys.argv) == 1 or sys.argv[1] == "help":
+    if len(sys.argv) != 2 or sys.argv[1] == "help":
         do_help()
 
-    # main actions
-    elif sys.argv[1] == "getentries":
-        do_getentries()
-    elif sys.argv[1] == "getpreds":
-        do_getpreds()
-    elif sys.argv[1] == "getnmses":
-        do_getnmses()
-    
     else:
-        do_help()
+        nmses, bad_nft_addrs = do_getnmses()
+        print_results(nmses, bad_nft_addrs)
 
 
 if __name__ == "__main__":
