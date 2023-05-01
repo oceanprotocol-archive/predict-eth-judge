@@ -196,7 +196,7 @@ def do_getnmses():
         nmses[nft_addr] = nmse
         print(f"NFT #{i+1}/{n}: Done")
 
-    print_results(nmses, bad_nft_addrs)
+    return nmses, bad_nft_addrs
 
 
 @enforce_types
@@ -213,7 +213,8 @@ def do_main():
         do_help()
 
     else:
-        do_getnmses()
+        nmses, bad_nft_addrs = do_getnmses()
+        print_results(nmses, bad_nft_addrs)
 
 
 if __name__ == "__main__":
