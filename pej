@@ -33,15 +33,18 @@ HELP_MAIN = f"""predict-eth-judge
 
 Usage: pej DEADLINE
 
-DEADLINE expected in the format YEAR-MONTH-DAY_HOUR:MIN in UTC.
-   Eg 2023-04-06_1:00
-DEADLINE refers to the end of the challenge itself, to limit entry retrieval.
+DEADLINE is the submission deadline.
+ - Format is YYYY-MM-DD_HOUR:MIN, in UTC
+ - Example for Round 4: 2023-04-05_23:59
+ - Example for Round 5: 2023-05-03_23:59
 
-Hard-coded values: NETWORK_NAME={NETWORK_NAME}, CHAINID={CHAINID}
+Hard-coded values: 
+   NETWORK_NAME={NETWORK_NAME}
+   CHAINID={CHAINID}
+
 Ennvars expected:
    REMOTE_TEST_PRIVATE_KEY1 (for judges' account)
    POLYGONSCAN_API_KEY
-
 """
 
 
