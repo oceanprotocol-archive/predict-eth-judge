@@ -154,19 +154,10 @@ def print_results(from_addrs: list, nmses:list):
     print("Summary:")
     print("-------------")
 
-    print(f"\n{len(nmses)} entries:")
-    for (from_addr, nmse) in zip(from_addrs, nmses):
-        print(f"from: {from_addr}, NMSE: {nmse:.3e}")
-
-    print("\nafter ranking:")
+    print(f"\n{len(nmses)} entries, lowest-nmse first:")
     print("-------------")
-    I = numpy.argsort(nmses)
+    I = numpy.argsort(nmses)    
     for i in I:
-        print(f"from: {from_addrs[i]}, NMSE: {nmses[i]:.3e}")
-
-    print("\ntop 3:")
-    print("-------------")
-    for i in I[:3]:
         print(f"from: {from_addrs[i]}, NMSE: {nmses[i]:.3e}")
 
     print("\npej: Done")
@@ -183,32 +174,41 @@ def do_getnmses():
     cex_vals = get_cex_vals(deadline_dt)
 
     txs = get_txs(deadline_dt)
-    
+
     nft_addrs = [tx["contractAddress"] for tx in txs]
     from_addrs = [tx["from"] for tx in txs]
 
+    # fill in nmses; print pred_vals
     n = len(txs)
     nmses = [None] * n # fill this in
-    for i, nft_addr in enumerate(nft_addrs):
+    for i, (nft_addr, from_addr) in enumerate(zip(nft_addrs, from_addrs)):
         print("="*60)
         print(f"NFT #{i+1}/{n}: Begin.")
 
         # get predicted ETH values
+        print(f"from_addr = {from_addr}")
         print(f"nft_addr = {nft_addr}")
+        
         pred_vals = nft_addr_to_pred_vals(nft_addr, ocean, alice)  # main call
         print(f"pred_vals: {pred_vals}")
 
         # calc nmse
         if len(pred_vals) != len(cex_vals):
             nmses[i] = 1.0
-            print("Error: wrong # predicted values. Skipping")
         else:
             nmses[i] = calc_nmse(cex_vals, pred_vals)
-            print(f"from_addr = {from_addrs[i]}, NMSE = {nmses[i]:.3e}")
             # plot_prices(cex_vals, pred_vals)
 
         print(f"NFT #{i+1}/{n}: Done")
 
+    #if an address gives >1 entry: keep lowest, rest get nmse 1.0
+    for from_addr in set(from_addrs):
+        I = [i for i, cand_from_addr in enumerate(from_addrs)
+             if cand_from_addr == from_addr]
+        for i in I[1:]:
+            nmses[i] = 1.0
+        
+    #print
     print_results(from_addrs, nmses)
 
 
