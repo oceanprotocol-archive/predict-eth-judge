@@ -8,6 +8,7 @@ import requests
 
 import ccxt
 from enforce_typing import enforce_types
+import numpy
 
 from predict_eth.helpers import (
     calc_nmse,
@@ -47,7 +48,9 @@ Ennvars expected:
 
 
 @enforce_types
-def get_nft_addresses(deadline_dt):
+def get_txs(deadline_dt):
+    """Returns a list of txs. Each tx is a dict that includes: {'timeStamp': '1677562009', 'hash': '0x163991c9fb2c94b7452909a1bd8cf4d298d92dc90ef2e49ab13dc935f0552061','from': '0x04815de815db15a3086425b58981545bec018a6a', 'contractAddress': '0x458420a012cb7e63ae24ecf83eb21ab7c40d71d8', 'to': '0xa54abd42b11b7c97538cad7c6a2820419ddf703e', 'tokenID': '1', 'tokenName': 'Data NFT 1', 'tokenSymbol': 'DN1'}
+    """
     a_week_before_deadline = deadline_dt - timedelta(weeks=1)
     judges_address = "0xA54ABd42b11B7C97538CAD7C6A2820419ddF703E"
     
@@ -60,7 +63,6 @@ def get_nft_addresses(deadline_dt):
     }
     txs = requests.get(url, params=params).json()["result"] # list of "tx"
 
-    #each tx is a dict that includes: {'timeStamp': '1677562009', 'hash': '0x163991c9fb2c94b7452909a1bd8cf4d298d92dc90ef2e49ab13dc935f0552061','from': '0x04815de815db15a3086425b58981545bec018a6a', 'contractAddress': '0x458420a012cb7e63ae24ecf83eb21ab7c40d71d8', 'to': '0xa54abd42b11b7c97538cad7c6a2820419ddf703e', 'tokenID': '1', 'tokenName': 'Data NFT 1', 'tokenSymbol': 'DN1'}
 
     filtered_txs = [tx
                     for tx in txs
@@ -69,9 +71,9 @@ def get_nft_addresses(deadline_dt):
     print(f"Judges address = {judges_address}")
     _printTxTimes(txs, "all txs")
     _printTxTimes(filtered_txs, "on-time txs")
-    
-    addresses = [tx["contractAddress"] for tx in filtered_txs]
-    return addresses
+
+    return filtered_txs
+
 
 @enforce_types
 def _printTxTimes(txs, s): 
@@ -142,33 +144,30 @@ def parse_arguments(arguments):
     return deadline_dt
 
 
-def print_addresss_nmse(nmses):
-    for address, nmse in nmses.items():
-        print(f"Address: {address}, NMSE: {nmse}")
 
 
-def print_results(nmses, bad_nft_addrs):
+@enforce_types
+def print_results(from_addrs: list, nmses:list):
+    assert len(nmses) == len(from_addrs)
+    
     print("\n-------------")
     print("Summary:")
     print("-------------")
 
-    print(f"{len(bad_nft_addrs)} bad entries: ")
-    for bad_addr in bad_nft_addrs:
-        print(f"BAD: {bad_addr}")
+    print(f"\n{len(nmses)} entries:")
+    for (from_addr, nmse) in zip(from_addrs, nmses):
+        print(f"from: {from_addr}, NMSE: {nmse:.3e}")
 
-    print(f"\n{len(nmses)} good entries:")
-    print_addresss_nmse(nmses)
-
-    ranking = {
-        k: v for k, v in sorted(nmses.items(), key=lambda item: item[1])
-    }
     print("\nafter ranking:")
     print("-------------")
-    print_addresss_nmse(ranking)
+    I = numpy.argsort(nmses)
+    for i in I:
+        print(f"from: {from_addrs[i]}, NMSE: {nmses[i]:.3e}")
 
     print("\ntop 3:")
     print("-------------")
-    print("\n".join(list(ranking.keys())[:3]))
+    for i in I[:3]:
+        print(f"from: {from_addrs[i]}, NMSE: {nmses[i]:.3e}")
 
     print("\npej: Done")
 
@@ -183,33 +182,35 @@ def do_getnmses():
     deadline_dt = parse_arguments(sys.argv)
     cex_vals = get_cex_vals(deadline_dt)
 
-    entries = get_nft_addresses(deadline_dt)
-    n = len(entries)
-    nmses, bad_nft_addrs = {}, []
+    txs = get_txs(deadline_dt)
+    
+    nft_addrs = [tx["contractAddress"] for tx in txs]
+    from_addrs = [tx["from"] for tx in txs]
 
-    for i, entry in enumerate(entries):
-        nft_addr = entry
+    n = len(txs)
+    nmses = [None] * n # fill this in
+    for i, nft_addr in enumerate(nft_addrs):
         print("="*60)
         print(f"NFT #{i+1}/{n}: Begin.")
 
         # get predicted ETH values
-        print(f"nft_addr: {nft_addr}")
+        print(f"nft_addr = {nft_addr}")
         pred_vals = nft_addr_to_pred_vals(nft_addr, ocean, alice)  # main call
         print(f"pred_vals: {pred_vals}")
+
+        # calc nmse
         if len(pred_vals) != len(cex_vals):
+            nmses[i] = 1.0
             print("Error: wrong # predicted values. Skipping")
-            bad_nft_addrs.append(nft_addr)
-            continue
+        else:
+            nmses[i] = calc_nmse(cex_vals, pred_vals)
+            print(f"from_addr = {from_addrs[i]}, NMSE = {nmses[i]:.3e}")
+            # plot_prices(cex_vals, pred_vals)
 
-        # calc nmse, plot
-        nmse = calc_nmse(cex_vals, pred_vals)
-        print(f"nft_addr={nft_addr}, NMSE = {nmse:.8f}")
-        # plot_prices(cex_vals, pred_vals)
-
-        nmses[nft_addr] = nmse
         print(f"NFT #{i+1}/{n}: Done")
 
-    return nmses, bad_nft_addrs
+    print_results(from_addrs, nmses)
+
 
 
 @enforce_types
@@ -224,10 +225,9 @@ def do_help():
 def do_main():
     if len(sys.argv) != 2 or sys.argv[1] == "help":
         do_help()
+        return
 
-    else:
-        nmses, bad_nft_addrs = do_getnmses()
-        print_results(nmses, bad_nft_addrs)
+    do_getnmses()
 
 
 if __name__ == "__main__":
