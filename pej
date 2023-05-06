@@ -144,8 +144,6 @@ def parse_arguments(arguments):
     return deadline_dt
 
 
-
-
 @enforce_types
 def print_results(from_addrs: list, nft_addrs: list, nmses:list):
     assert len(nmses) == len(from_addrs)
