@@ -147,7 +147,7 @@ def parse_arguments(arguments):
 
 
 @enforce_types
-def print_results(from_addrs: list, nmses:list):
+def print_results(from_addrs: list, nft_addrs: list, nmses:list):
     assert len(nmses) == len(from_addrs)
     
     print("\n-------------")
@@ -157,8 +157,9 @@ def print_results(from_addrs: list, nmses:list):
     print(f"\n{len(nmses)} entries, lowest-nmse first:")
     print("-------------")
     I = numpy.argsort(nmses)    
-    for i in I:
-        print(f"from: {from_addrs[i]}, NMSE: {nmses[i]:.3e}")
+    for i in I:        
+        print(f"from: {from_addrs[i]}, nft: {nft_addrs[i]}, "
+              f"NMSE: {nmses[i]:.3e}")
 
     print("\npej: Done")
 
@@ -209,7 +210,7 @@ def do_getnmses():
             nmses[i] = 1.0
         
     #print
-    print_results(from_addrs, nmses)
+    print_results(from_addrs, nft_addrs, nmses)
 
 
 
