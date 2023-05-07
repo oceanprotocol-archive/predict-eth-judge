@@ -167,6 +167,35 @@ def print_results(from_addrs: list, nft_addrs: list, nmses:list):
 
 
 @enforce_types
+def _keep_youngest_entry_per_competitor(txs: list, nmses:list) -> list:
+    """For each from_addr with >1 entry, make all nmses 1.0 except youngest"""
+    print()
+    print("Keep-youngest: begin")
+    from_addrs = [tx["from"] for tx in txs]
+    for from_addr in set(from_addrs):
+        I = [i for i, cand_from_addr in enumerate(from_addrs)
+             if cand_from_addr == from_addr]
+        if len(I) == 1:
+            continue
+        Ip1 = [i+1 for i in I]
+        print()
+        print(f"  NFTs #{Ip1} all come {from_addrs[I[0]]}")
+
+        dates = [_date(txs[i]) for i in I]
+        youngest_j = numpy.argmax(dates)
+        print(f"  Youngest is #{Ip1[youngest_j]}, at {dates[youngest_j]}")
+        
+        for j, i in enumerate(I):
+            if j != youngest_j:
+                nmses[I[j]] = 1.0
+                print(f"  Non-youngest #{[Ip1[j]]}, at {dates[j]} gets nmse = 1.0")
+    print()
+    print("Keep-youngest: done")
+
+    return nmses
+
+
+@enforce_types
 def do_getnmses():
     ocean = create_ocean_instance(NETWORK_NAME)
     alice_private_key = os.getenv("REMOTE_TEST_PRIVATE_KEY1")
@@ -182,6 +211,8 @@ def do_getnmses():
     from_addrs = [tx["from"] for tx in txs]
 
     # fill in nmses; print pred_vals
+    print()
+    print("Get predvals & calc mmses: begin")
     n = len(txs)
     nmses = [None] * n # fill this in
     for i, (nft_addr, from_addr) in enumerate(zip(nft_addrs, from_addrs)):
@@ -189,6 +220,7 @@ def do_getnmses():
         print(f"NFT #{i+1}/{n}: Begin.")
 
         # get predicted ETH values
+        print(f"date = {_date(txs[i])}")
         print(f"from_addr = {from_addr}")
         print(f"nft_addr = {nft_addr}")
         
@@ -206,13 +238,9 @@ def do_getnmses():
 
         print(f"NFT #{i+1}/{n}: Done")
 
-    #if an address gives >1 entry: keep lowest, rest get nmse 1.0
-    for from_addr in set(from_addrs):
-        I = [i for i, cand_from_addr in enumerate(from_addrs)
-             if cand_from_addr == from_addr]
-        for i in I[1:]:
-            nmses[i] = 1.0
-        
+    #For each from_addr with >1 entry, make all nmses 1.0 except youngest
+    nmses = _keep_youngest_entry_per_competitor(txs, nmses)
+
     #print
     print_results(from_addrs, nft_addrs, nmses)
 
