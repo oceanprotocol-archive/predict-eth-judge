@@ -179,7 +179,7 @@ def _keep_youngest_entry_per_competitor(txs: list, nmses:list) -> list:
             continue
         Ip1 = [i+1 for i in I]
         print()
-        print(f"  NFTs #{Ip1} all come {from_addrs[I[0]]}")
+        print(f"  NFTs #{Ip1} all come from {from_addrs[I[0]]}")
 
         dates = [_date(txs[i]) for i in I]
         youngest_j = numpy.argmax(dates)
